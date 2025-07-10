@@ -1,7 +1,7 @@
 [project]
 name = "gym-collabsort"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Gymnasium environment for training agents on a collaborative sorting task"
 readme = "README.md"
 authors = [
     { name = "Baptiste Pesquet", email = "bpesquet@gmail.com" }
