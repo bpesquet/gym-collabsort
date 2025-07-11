@@ -8,3 +8,6 @@ from gym_collabsort.grid import Grid
 def test_grid():
     grid = Grid()
     print(grid)
+
+    img = grid.draw()
+    img.show()
