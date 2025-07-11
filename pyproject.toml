@@ -16,4 +16,13 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
 ]
+
+[tool.ruff.lint]
+# Enhance checking. See https://docs.astral.sh/ruff/rules/#flake8-bugbear-b for details
+extend-select = ["B"]
+
+[tool.pytest.ini_options]
+# Add code coverage reporting
+addopts = "--cov=gym_collabsort --cov-report=term-missing"

@@ -37,7 +37,7 @@ class Grid:
 
         for row in range(self.shape[0]):
             for col in range(self.shape[1]):
-                grid_str += self.cells[row][col].color.name + " "
+                grid_str += self.cells[row][col].color.name[0] + " "
             grid_str += "\n"
 
         return grid_str

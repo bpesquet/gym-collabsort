@@ -31,7 +31,7 @@ uvx ruff format
 # Lint all Python files and fix any fixable errors
 uvx ruff check --fix
 
-# Test the codebase.
+# Test the codebase. See pyproject.toml for pytest configuration.
 # The optional -s flag prints code output
 uv run pytest [-s]
 ```
