@@ -10,6 +10,8 @@ from enum import Enum, StrEnum
 
 from PIL import Image, ImageDraw
 
+from gym_collabsort.typing import Area
+
 
 class Color(StrEnum):
     """Possible colors for an object"""
@@ -23,8 +25,16 @@ class Shape(Enum):
     """Possible shapes for an object"""
 
     SQUARE = 1
-    RECTANGLE = 2
+    CIRCLE = 2
     TRIANGLE = 3
+
+
+@dataclass
+class Vector2:
+    """A 2D vector"""
+
+    x: int
+    y: int
 
 
 @dataclass
@@ -33,6 +43,23 @@ class Object:
 
     color: Color
     shape: Shape
+
+    def draw(self, xy: Area, image: Image) -> Image:
+        """Draw the object as a PIL Image"""
+
+        if self.shape == Shape.SQUARE:
+            ImageDraw.Draw(image).rectangle(xy=xy, fill=self.color)
+        elif self.shape == Shape.CIRCLE:
+            # Compute radius and coordinates of the center
+            radius = (xy[1][0] - xy[0][0]) / 2
+            center = (xy[0][0] + radius, xy[0][1] + radius)
+            ImageDraw.Draw(image).circle(xy=center, radius=radius, fill=self.color)
+        elif self.shape == Shape.TRIANGLE:
+            # Compute the 3 points of the triangle
+            top = (xy[0][0] + (xy[1][0] - xy[0][0]) / 2, xy[0][1])
+            bl = (xy[0][0], xy[1][1])
+            br = xy[1]
+            ImageDraw.Draw(image).polygon(xy=[top, bl, br], fill=self.color)
 
 
 class Grid:
@@ -50,9 +77,9 @@ class Grid:
             mode="RGB", size=(width, height), color="white"
         )
 
-        self.cells = self.init_cells()
+        self.cells = self._init_cells()
 
-    def init_cells(self, n_objects: int = 10) -> list[list[Object | None]]:
+    def _init_cells(self, n_objects: int = 10) -> list[list[Object | None]]:
         """Init grid cells"""
 
         assert n_objects <= self.n_rows * self.n_cols, (
@@ -100,8 +127,8 @@ class Grid:
                         x + self.cell_size,
                         y + self.cell_size,
                     )
-                    ImageDraw.Draw(image).rectangle(
-                        [(x, y), (x_dash, y_dash)], fill=self.cells[row][col].color
+                    self.cells[row][col].draw(
+                        xy=[(x, y), (x_dash, y_dash)], image=image
                     )
 
         return image
@@ -147,4 +174,8 @@ class Grid:
                     grid_str += "_ "
             grid_str += "\n"
 
+        return grid_str
+        return grid_str
+
+        return grid_str
         return grid_str
