@@ -30,14 +30,6 @@ class Shape(Enum):
 
 
 @dataclass
-class Vector2:
-    """A 2D vector"""
-
-    x: int
-    y: int
-
-
-@dataclass
 class Object:
     """An object to be picked up by the agents"""
 
@@ -65,7 +57,7 @@ class Object:
 class Grid:
     """A 2D grid containing the objects to be picked"""
 
-    def __init__(self, shape: tuple[int, int] = (3, 7), cell_size: int = 50):
+    def __init__(self, shape: tuple[int, int], cell_size: int = 50):
         self.n_rows = shape[0]
         self.n_cols = shape[1]
         self.cell_size = cell_size
@@ -174,8 +166,4 @@ class Grid:
                     grid_str += "_ "
             grid_str += "\n"
 
-        return grid_str
-        return grid_str
-
-        return grid_str
         return grid_str
