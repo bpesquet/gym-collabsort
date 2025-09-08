@@ -16,5 +16,8 @@ class Config:
     # Size in pixels of a (square) grid cell
     cell_size = 50
 
+    # Background color of the grid
+    background_color = "white"
+
     # Number of pickable objects on the grid
     n_objects = 10

@@ -48,14 +48,7 @@ class CollabSortEnv(gym.Env):
         self.n_agents = n_agents
         self.config = config
 
-        # Init locations for agents and objects
-        # self.agents_locations = tuple(
-        #     np.array([-1, -1], dtype=int) for _ in range(self.n_agents)
-        # )
-        # self.objects_locations = tuple(
-        #     np.array([-1, -1], dtype=int) for _ in range(self.config.n_objects)
-        # )
-        self.grid = Grid(config=config, rng=self.np_random)
+        self.grid = Grid(config=config)
 
         # Each agent has the same possible actions, defined as discrete values
         self.action_space = gym.spaces.Tuple(
@@ -101,4 +94,10 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
-        self.grid.reset()
+        self.grid.reset(rng=self.np_random)
+
+    def _get_obs(self) -> list:
+        """Return a list of observations, one for each agent"""
+
+        observations = []
+        return observations

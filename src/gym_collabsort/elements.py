@@ -45,8 +45,10 @@ class Object(pygame.sprite.Sprite):
         self.image = pygame.Surface(size=(config.cell_size, config.cell_size))
         self.image.fill(color="red")
 
-        x_center = config.cell_size * (self.location.row + 0.5)
-        y_center = config.cell_size * (self.location.col + 0.5)
+        # Compute coordinates of center.
+        # X and Y axes resp. correspond to col and row values
+        x_center = config.cell_size * (self.location.col + 0.5)
+        y_center = config.cell_size * (self.location.row + 0.5)
         self.rect = self.image.get_rect(center=(x_center, y_center))
 
     def __str__(self):
