@@ -7,7 +7,7 @@ import pygame
 from pygame.sprite import Group
 
 from .config import Config
-from .elements import Location, Object
+from .object import Location, Object
 
 
 class Grid:
@@ -25,6 +25,7 @@ class Grid:
         window_height = self.config.n_rows * self.config.cell_size
         self.canvas = pygame.Surface(size=(window_width, window_height))
 
+        self.objects: Group[Object] = Group()
         self.agent_location = Location(row=-1, col=-1)
 
     def reset(
@@ -43,7 +44,7 @@ class Grid:
         )
 
         # Put each object in an available location
-        self.objects: Group[Object] = Group()
+        self.objects = Group()
         remaining_objects = self.config.n_objects
         while remaining_objects > 0:
             location = Location(
@@ -68,14 +69,36 @@ class Grid:
 
         return True
 
-    def draw(self):
+    def draw(self) -> np.ndarray:
         """Draw the grid"""
 
-        # fill the surface with background color to wipe away anything
+        # fill the surface with background color to wipe away anything previously drawed
         self.canvas.fill(self.config.background_color)
 
         # Draw objects
         self.objects.draw(self.canvas)
+
+        # Draw vertical lines
+        for x in range(self.config.n_cols + 1):
+            x_line = self.config.cell_size * x
+            pygame.draw.line(
+                surface=self.canvas,
+                color="black",
+                start_pos=(x_line, 0),
+                end_pos=(x_line, self.canvas.get_height()),
+                width=self.config.line_width,
+            )
+
+        # Draw horizontal lines
+        for y in range(self.config.n_rows + 1):
+            y_line = self.config.cell_size * y
+            pygame.draw.line(
+                surface=self.canvas,
+                color="black",
+                start_pos=(0, y_line),
+                end_pos=(self.canvas.get_width(), y_line),
+                width=self.config.line_width,
+            )
 
         # Return grid as a frame
         return np.transpose(
@@ -83,7 +106,7 @@ class Grid:
         )
 
     def __str__(self) -> str:
-        """Return a string description of a grid"""
+        """Return a string representation of a grid"""
 
         n_objects: int = len(self.objects)
         grid_str: str = f"Grid dimensions: ({self.config.n_rows}, {self.config.n_cols}). {n_objects} objects"

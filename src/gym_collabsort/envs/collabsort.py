@@ -9,7 +9,7 @@ import gymnasium as gym
 import numpy as np
 
 from gym_collabsort.config import Config
-from gym_collabsort.grid2 import Grid
+from gym_collabsort.grid import Grid
 
 
 class Action(Enum):

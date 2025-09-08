@@ -2,12 +2,20 @@
 Unit tests for grid.
 """
 
-from gym_collabsort.envs.grid import Grid
+import numpy as np
+from matplotlib import pyplot as plt
+
+from gym_collabsort.grid import Grid
 
 
-def test_grid():
-    grid = Grid(shape=(3, 7))
+def test_reset_and_draw():
+    grid = Grid()
+    assert len(grid.objects) == 0
+
+    grid.reset(rng=np.random.default_rng())
     print(grid)
+    assert len(grid.objects) == grid.config.n_objects
 
-    img = grid.draw()
-    img.show()
+    frame = grid.draw()
+    plt.imshow(frame)
+    plt.show()

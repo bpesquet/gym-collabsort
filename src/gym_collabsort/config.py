@@ -19,5 +19,8 @@ class Config:
     # Background color of the grid
     background_color = "white"
 
+    # Width of seperation lines
+    line_width = 1
+
     # Number of pickable objects on the grid
     n_objects = 10

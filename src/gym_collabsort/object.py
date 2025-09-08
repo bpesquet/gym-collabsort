@@ -2,10 +2,8 @@
 Elements of the environment: agents and pickable objects.
 """
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-import numpy as np
 import pygame
 
 from gym_collabsort.config import Config
@@ -20,18 +18,6 @@ class Location:
 
     def __str__(self):
         return f"({self.row},{self.col})"
-
-
-@dataclass
-class Element(ABC):
-    """Base class for elements"""
-
-    # Location as (x,y) coordinates
-    location = np.array([-1, -1], dtype=int)
-
-    @abstractmethod
-    def draw(self, canvas) -> None:
-        """Draw the element on a provided canvas"""
 
 
 class Object(pygame.sprite.Sprite):
