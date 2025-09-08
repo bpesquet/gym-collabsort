@@ -94,7 +94,7 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
-        self.grid.reset(rng=self.np_random)
+        self.grid.populate(rng=self.np_random)
 
     def _get_obs(self) -> list:
         """Return a list of observations, one for each agent"""

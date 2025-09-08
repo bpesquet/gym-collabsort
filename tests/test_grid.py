@@ -8,11 +8,11 @@ from matplotlib import pyplot as plt
 from gym_collabsort.grid import Grid
 
 
-def test_reset_and_draw():
+def test_populate():
     grid = Grid()
     assert len(grid.objects) == 0
 
-    grid.reset(rng=np.random.default_rng())
+    grid.populate(rng=np.random.default_rng())
     print(grid)
     assert len(grid.objects) == grid.config.n_objects
 
