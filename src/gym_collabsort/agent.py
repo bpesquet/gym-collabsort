@@ -42,7 +42,7 @@ class Agent(pygame.sprite.Sprite):
         # Get the centered rectangular area of the agent image
         self.rect = self.image.get_rect(center=self._get_center())
 
-    def update(self):
+    def update(self) -> None:
         """Update agent location"""
 
         # Update the centered rectangular area of the agent image

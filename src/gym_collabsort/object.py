@@ -5,6 +5,7 @@ Pickable objects.
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 
+import numpy as np
 import pygame
 
 from gym_collabsort.config import Config
@@ -35,6 +36,11 @@ class Location:
 
     def __str__(self):
         return f"({self.row},{self.col})"
+
+    def as_array(self) -> np.ndarray:
+        """Return the location as a 2D NumPy array"""
+
+        return np.array([self.row, self.col], dtype=int)
 
 
 class Object(pygame.sprite.Sprite):
