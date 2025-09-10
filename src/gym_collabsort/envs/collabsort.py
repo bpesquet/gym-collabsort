@@ -7,10 +7,11 @@ from typing import Any
 
 import gymnasium as gym
 import numpy as np
+import pygame
 
+from gym_collabsort.cell import Object, Shape
 from gym_collabsort.config import Config
 from gym_collabsort.grid import Grid
-from gym_collabsort.object import Object, Shape
 
 
 class Action(Enum):
@@ -49,7 +50,29 @@ class CollabSortEnv(gym.Env):
         self.n_agents = n_agents
         self.config = config
 
+        """
+        If human-rendering is used, `self.window` will be a reference
+        to the window that we draw to. `self.clock` will be a clock that is used
+        to ensure that the environment is rendered at the correct framerate in
+        human-mode. They will remain `None` until human-mode is used for the
+        first time.
+        """
+        self.window = None
+        self.clock = None
+
         self.grid = Grid(config=config)
+
+        """
+        The following dictionary maps abstract actions from `self.action_space` to
+        the direction we will walk in if that action is taken.
+        i.e. 0 corresponds to "right", 1 to "up" etc.
+        """
+        self._action_to_direction = {
+            Action.RIGHT.value: (1, 0),
+            Action.UP.value: (0, 1),
+            Action.LEFT.value: (-1, 0),
+            Action.DOWN.value: (0, -1),
+        }
 
         # Define possible actions for the agent
         self.action_space = gym.spaces.Discrete(n=len(Action))
@@ -97,6 +120,9 @@ class CollabSortEnv(gym.Env):
 
         self.grid.populate(rng=self.np_random)
 
+        if self.render_mode == RenderMode.HUMAN:
+            self._render_frame()
+
         return (self._get_obs(), {})
 
     def _get_obs(self) -> dict:
@@ -119,3 +145,51 @@ class CollabSortEnv(gym.Env):
             "color": object.color,
             "shape": object.shape,
         }
+
+    def step(self, action) -> tuple[dict, int, bool, bool, dict]:
+        # Map the action (element of {0,1,2,3}) to the direction we walk in
+        direction = self._action_to_direction[action]
+        # Update agent location
+        self.grid.agent.sprite.location.add(
+            direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
+        )
+
+        observation = self._get_obs()
+
+        if self.render_mode == RenderMode.HUMAN:
+            self._render_frame()
+
+        return observation, 0, False, False, {}
+
+    def render(self) -> np.ndarray | None:
+        if self.render_mode == RenderMode.RGB_ARRAY:
+            return self._render_frame()
+
+    def _render_frame(self) -> np.ndarray | None:
+        if self.window is None and self.render_mode == RenderMode.HUMAN:
+            pygame.init()
+            pygame.display.init()
+            self.window = pygame.display.set_mode(size=self.grid.window_size)
+
+        if self.clock is None and self.render_mode == RenderMode.HUMAN:
+            self.clock = pygame.time.Clock()
+
+        canvas = self.grid.draw()
+
+        if self.render_mode == RenderMode.HUMAN:
+            # The following line copies our drawings from canvas to the visible window
+            self.window.blit(canvas, canvas.get_rect())
+            pygame.event.pump()
+            pygame.display.update()
+
+            # We need to ensure that human-rendering occurs at the predefined framerate.
+            # The following line will automatically add a delay to keep the framerate stable.
+            self.clock.tick(self.config.render_fps)
+
+        else:  # rgb_array
+            return self.grid.get_frame()
+
+    def close(self) -> None:
+        if self.window is not None:
+            pygame.display.quit()
+            pygame.quit()

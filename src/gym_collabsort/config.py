@@ -21,3 +21,6 @@ class Config:
 
     # Number of pickable objects on the grid
     n_objects = 10
+
+    # Frames Per Second for env rendering
+    render_fps = 30

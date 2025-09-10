@@ -6,9 +6,8 @@ import numpy as np
 import pygame
 from pygame.sprite import Group, GroupSingle
 
-from .agent import Agent
+from .cell import Agent, Color, Location, Object, Shape
 from .config import Config
-from .object import Color, Location, Object, Shape
 
 
 class Grid:
@@ -22,14 +21,20 @@ class Grid:
         self.config = config
 
         # Define the surface to draw upon
-        window_width = self.config.n_cols * self.config.cell_size
-        window_height = self.config.n_rows * self.config.cell_size
-        self.canvas = pygame.Surface(size=(window_width, window_height))
+        self.canvas = pygame.Surface(size=self.window_size)
 
         self.objects: Group[Object] = Group()
         self.agent: GroupSingle[Agent] = GroupSingle(
             Agent(location=Location(-1, -1), config=config)
         )
+
+    @property
+    def window_size(self) -> tuple[int, int]:
+        """Get the size of the grid window"""
+
+        window_width = self.config.n_cols * self.config.cell_size
+        window_height = self.config.n_rows * self.config.cell_size
+        return (window_width, window_height)
 
     def populate(
         self,
@@ -85,7 +90,7 @@ class Grid:
 
         return True
 
-    def draw(self) -> np.ndarray:
+    def draw(self) -> pygame.Surface:
         """Draw the grid"""
 
         # fill the surface with background color to wipe away anything previously drawed
@@ -118,7 +123,12 @@ class Grid:
                 end_pos=(self.canvas.get_width(), y_line),
             )
 
-        # Return grid as a frame
+        # Return grid as pygame surface
+        return self.canvas
+
+    def get_frame(self) -> np.ndarray:
+        """Return the grid as a NumPy array"""
+
         return np.transpose(
             np.array(pygame.surfarray.pixels3d(self.canvas)), axes=(1, 0, 2)
         )
