@@ -133,7 +133,7 @@ class CollabSortEnv(gym.Env):
         # - properties for all objects
         objects = [self._get_object_props(object=obj) for obj in self.grid.objects]
         return {
-            "self_location": self.grid.agent.sprite.location.as_array(),
+            "self_location": self.grid.agent.location.as_array(),
             "objects": objects,
         }
 
@@ -150,7 +150,7 @@ class CollabSortEnv(gym.Env):
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
         # Update agent location
-        self.grid.agent.sprite.location.add(
+        self.grid.agent.location.add(
             direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
         )
 

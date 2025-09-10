@@ -23,8 +23,11 @@ class Grid:
         # Define the surface to draw upon
         self.canvas = pygame.Surface(size=self.window_size)
 
+        # Create an empty group for grid objects
         self.objects: Group[Object] = Group()
-        self.agent: GroupSingle[Agent] = GroupSingle(
+
+        # Put the agent in its own group
+        self._agent: GroupSingle[Agent] = GroupSingle(
             Agent(location=Location(-1, -1), config=config)
         )
 
@@ -36,6 +39,12 @@ class Grid:
         window_height = self.config.n_rows * self.config.cell_size
         return (window_width, window_height)
 
+    @property
+    def agent(self) -> Agent:
+        """Get the agent"""
+
+        return self._agent.sprite
+
     def populate(
         self,
         rng: np.random.Generator,
@@ -46,7 +55,7 @@ class Grid:
         agent_location = Location(
             row=self.config.n_rows - 1, col=(self.config.n_cols - 1) // 2
         )
-        self.agent.sprite.location = agent_location
+        self.agent.location = agent_location
 
         assert self.config.n_objects <= self.config.n_rows * self.config.n_cols - 2, (
             f"Not enough space on the grid for {self.config.n_objects} objects"
@@ -85,7 +94,7 @@ class Grid:
                 return False
 
         # Check for agent
-        if location == self.agent.sprite.location:
+        if location == self.agent.location:
             return False
 
         return True
@@ -100,8 +109,8 @@ class Grid:
         self.objects.draw(self.canvas)
 
         # Draw agent
-        self.agent.update()
-        self.agent.draw(self.canvas)
+        self._agent.update()
+        self._agent.draw(self.canvas)
 
         # Draw separation lines between grid cells.
         # Draw vertical lines
@@ -144,6 +153,6 @@ class Grid:
             grid_str += " ".join(map(str, self.objects))
             grid_str += "]"
 
-        grid_str += f". Agent: {self.agent.sprite.location}"
+        grid_str += f". Agent: {self.agent.location}"
 
         return grid_str
