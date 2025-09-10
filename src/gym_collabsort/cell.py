@@ -155,7 +155,7 @@ class Agent(GridElement):
         self.rect = self.image.get_rect(center=self._get_center())
 
     def update(self) -> None:
-        """Move the agent"""
+        """Move the agent image"""
 
         # Update the centered rectangular area of the agent image
         self.rect = self.image.get_rect(center=self._get_center())

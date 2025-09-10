@@ -147,19 +147,18 @@ class CollabSortEnv(gym.Env):
         }
 
     def step(self, action) -> tuple[dict, int, bool, bool, dict]:
-        # Map the action (element of {0,1,2,3}) to the direction we walk in
+        # Map the action to the direction we walk in
         direction = self._action_to_direction[action]
-        # Update agent location
-        self.grid.agent.location.add(
-            direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
-        )
+
+        _ = self.grid.move_agent(direction=direction)
 
         observation = self._get_obs()
+        terminated = len(self.grid.objects) == 0
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
 
-        return observation, 0, False, False, {}
+        return observation, 0, terminated, False, {}
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:

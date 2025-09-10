@@ -18,10 +18,18 @@ def test_render_human() -> None:
     env = CollabSortEnv(render_mode=RenderMode.HUMAN)
     env.reset()
 
-    for _ in range(60):
-        env.step(env.action_space.sample())
+    ep_over = False
+    ep_reward = 0
+    while not ep_over:
+        _, reward, terminated, truncated, _ = env.step(env.action_space.sample())
+
+        ep_reward += reward
+        ep_over = terminated or truncated
 
     env.close()
+    print(f"Episode over, reward={ep_reward}")
+
+    assert len(env.grid.objects) == 0
 
 
 def test_render_rgb() -> None:

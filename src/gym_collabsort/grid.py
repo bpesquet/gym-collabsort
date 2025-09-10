@@ -6,7 +6,7 @@ import numpy as np
 import pygame
 from pygame.sprite import Group, GroupSingle
 
-from .cell import Agent, Color, Location, Object, Shape
+from .cell import Agent, Color, GridElement, Location, Object, Shape
 from .config import Config
 
 
@@ -69,7 +69,7 @@ class Grid:
                 row=rng.integers(low=0, high=self.config.n_rows),
                 col=rng.integers(low=0, high=self.config.n_cols),
             )
-            if self._is_location_available(location=obj_location):
+            if self._get_element(location=obj_location) is None:
                 # Randomly define object properties
                 color = rng.choice(list(Color))
                 shape = rng.choice(list(Shape))
@@ -85,19 +85,34 @@ class Grid:
                 )
                 remaining_objects -= 1
 
-    def _is_location_available(self, location: Location) -> bool:
-        """Check if a grid location is available or already taken by an element"""
-
+    def _get_element(self, location: Location) -> GridElement | None:
         # Check for existing objects
         for obj in self.objects:
             if obj.location == location:
-                return False
+                return obj
 
         # Check for agent
         if location == self.agent.location:
-            return False
+            return self.agent
 
-        return True
+        return None
+
+    def move_agent(self, direction: tuple[int, int]) -> Object | None:
+        """Move agent on the grid, returning the picked object if any"""
+
+        new_location = self.agent.location
+        new_location.add(
+            direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
+        )
+
+        element = self._get_element(location=new_location)
+        if element is not None and isinstance(element, Object):
+            self.objects.remove(element)
+
+        # Update agent location
+        self.agent.location = new_location
+
+        return element
 
     def draw(self) -> pygame.Surface:
         """Draw the grid"""
