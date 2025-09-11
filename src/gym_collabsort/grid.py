@@ -2,6 +2,8 @@
 The 2D grid containing objects and agents.
 """
 
+import copy
+
 import numpy as np
 import pygame
 from pygame.sprite import Group, GroupSingle
@@ -92,7 +94,7 @@ class Grid:
                 return obj
 
         # Check for agent
-        if location == self.agent.location:
+        if self.agent.location == location:
             return self.agent
 
         return None
@@ -100,19 +102,22 @@ class Grid:
     def move_agent(self, direction: tuple[int, int]) -> Object | None:
         """Move agent on the grid, returning the picked object if any"""
 
-        new_location = self.agent.location
+        new_location = copy.deepcopy(self.agent.location)
         new_location.add(
             direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
         )
 
-        element = self._get_element(location=new_location)
-        if element is not None and isinstance(element, Object):
-            self.objects.remove(element)
+        if new_location != self.agent.location:
+            element = self._get_element(location=new_location)
+            if element is not None and isinstance(element, Object):
+                self.objects.remove(element)
 
-        # Update agent location
-        self.agent.location = new_location
+            # Update agent location
+            self.agent.location = new_location
 
-        return element
+            return element
+
+        return None
 
     def draw(self) -> pygame.Surface:
         """Draw the grid"""

@@ -9,7 +9,7 @@ import gymnasium as gym
 import numpy as np
 import pygame
 
-from gym_collabsort.cell import Object, Shape
+from gym_collabsort.cell import Color, Object, Shape
 from gym_collabsort.config import Config
 from gym_collabsort.grid import Grid
 
@@ -150,15 +150,25 @@ class CollabSortEnv(gym.Env):
         # Map the action to the direction we walk in
         direction = self._action_to_direction[action]
 
-        _ = self.grid.move_agent(direction=direction)
+        # Compute reward
+        reward = -0.1
+        picked_object = self.grid.move_agent(direction=direction)
+        if picked_object is not None:
+            if picked_object.color == Color.BLUE:
+                reward = 2
+            else:
+                reward = -2
 
         observation = self._get_obs()
-        terminated = len(self.grid.objects) == 0
+
+        # Episode is terminated when all blue objects have been picked upp
+        nb_blue = sum(1 for obj in self.grid.objects if obj.color == Color.BLUE)
+        terminated = nb_blue == 0
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
 
-        return observation, 0, terminated, False, {}
+        return observation, reward, terminated, False, {}
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:

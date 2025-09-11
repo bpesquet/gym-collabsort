@@ -27,9 +27,7 @@ def test_render_human() -> None:
         ep_over = terminated or truncated
 
     env.close()
-    print(f"Episode over, reward={ep_reward}")
-
-    assert len(env.grid.objects) == 0
+    print(f"Episode over, reward={ep_reward:.02f}")
 
 
 def test_render_rgb() -> None:
