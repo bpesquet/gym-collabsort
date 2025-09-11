@@ -148,11 +148,16 @@ class CollabSortEnv(gym.Env):
 
     def step(self, action) -> tuple[dict, int, bool, bool, dict]:
         # Map the action to the direction we walk in
-        direction = self._action_to_direction[action]
+        agent_direction = self._action_to_direction[action]
 
-        # Compute reward
+        # Move robot
+        robot_action = self.action_space.sample()
+        robot_direction = self._action_to_direction[robot_action]
+        self.grid.move_robot(direction=robot_direction)
+
+        # Try to move agent and compute associated reward
         reward = -0.1
-        picked_object = self.grid.move_agent(direction=direction)
+        picked_object = self.grid.move_agent(direction=agent_direction)
         if picked_object is not None:
             if picked_object.color == Color.BLUE:
                 reward = 2

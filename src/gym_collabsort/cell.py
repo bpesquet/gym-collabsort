@@ -69,6 +69,12 @@ class GridElement(pygame.sprite.Sprite):
         self.image = pygame.Surface(size=(config.cell_size, config.cell_size))
         self.image.fill(color=config.background_color)
 
+    def update(self) -> None:
+        """Move the grid image"""
+
+        # Update the centered rectangular area of the element's image
+        self.rect = self.image.get_rect(center=self._get_center())
+
     def _get_center(self) -> tuple[int, int]:
         """Compute coordinates of center of agent location"""
 
@@ -120,7 +126,7 @@ class Object(GridElement):
                 surface=self.image, color=self.color, points=(top, bl, br)
             )
 
-        # Define the centered rectangular area of the object image
+        # Define the centered rectangular area of the image
         self.rect = self.image.get_rect(center=self._get_center())
 
     def __str__(self) -> str:
@@ -154,8 +160,32 @@ class Agent(GridElement):
         # Define the centered rectangular area of the agent image
         self.rect = self.image.get_rect(center=self._get_center())
 
-    def update(self) -> None:
-        """Move the agent image"""
 
-        # Update the centered rectangular area of the agent image
+class Robot(GridElement):
+    """The robot"""
+
+    def __init__(self, location: Location, config: Config) -> None:
+        super().__init__(location=location, config=config)
+
+        # Draw robot on the image as a "x" sign.
+        pygame.draw.line(
+            surface=self.image,
+            color="black",
+            start_pos=(0, 0),
+            end_pos=(config.cell_size, config.cell_size),
+            width=3,
+        )
+        pygame.draw.line(
+            surface=self.image,
+            color="black",
+            start_pos=(0, config.cell_size),
+            end_pos=(config.cell_size, 0),
+            width=3,
+        )
+
+        # Define the centered rectangular area of the image
+        self.rect = self.image.get_rect(center=self._get_center())
+        self.rect = self.image.get_rect(center=self._get_center())
+        self.rect = self.image.get_rect(center=self._get_center())
+        self.rect = self.image.get_rect(center=self._get_center())
         self.rect = self.image.get_rect(center=self._get_center())

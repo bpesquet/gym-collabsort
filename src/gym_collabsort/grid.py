@@ -8,7 +8,7 @@ import numpy as np
 import pygame
 from pygame.sprite import Group, GroupSingle
 
-from .cell import Agent, Color, GridElement, Location, Object, Shape
+from .cell import Agent, Color, GridElement, Location, Object, Robot, Shape
 from .config import Config
 
 
@@ -28,9 +28,14 @@ class Grid:
         # Create an empty group for grid objects
         self.objects: Group[Object] = Group()
 
-        # Put the agent in its own group
+        # Put the agent in its own group for rendering
         self._agent: GroupSingle[Agent] = GroupSingle(
             Agent(location=Location(-1, -1), config=config)
+        )
+
+        # Put the robot in its own group for rendering
+        self._robot: GroupSingle[Robot] = GroupSingle(
+            Robot(location=Location(-1, -1), config=config)
         )
 
     @property
@@ -47,21 +52,33 @@ class Grid:
 
         return self._agent.sprite
 
+    @property
+    def robot(self) -> Robot:
+        """Get the robot"""
+
+        return self._robot.sprite
+
     def populate(
         self,
         rng: np.random.Generator,
     ) -> None:
         """Populate the grid"""
 
-        # Put agent at the center of the bottom row
-        agent_location = Location(
-            row=self.config.n_rows - 1, col=(self.config.n_cols - 1) // 2
+        # Check that the grid is big enough to accomodate all elements
+        assert self.config.n_rows >= 2, (
+            "Grid should have at least two rows to include agent and robot"
         )
-        self.agent.location = agent_location
-
         assert self.config.n_objects <= self.config.n_rows * self.config.n_cols - 2, (
             f"Not enough space on the grid for {self.config.n_objects} objects"
         )
+
+        # Put agent at the center of the bottom row
+        self.agent.location = Location(
+            row=self.config.n_rows - 1, col=(self.config.n_cols - 1) // 2
+        )
+
+        # Put robot at the center of the top row
+        self.robot.location = Location(row=0, col=(self.config.n_cols - 1) // 2)
 
         # Add objects to the grid in an available location
         self.objects.empty()
@@ -97,25 +114,39 @@ class Grid:
         if self.agent.location == location:
             return self.agent
 
+        # Check for robot
+        if self.robot.location == location:
+            return self.robot
+
         return None
 
     def move_agent(self, direction: tuple[int, int]) -> Object | None:
         """Move agent on the grid, returning the picked object if any"""
 
-        new_location = copy.deepcopy(self.agent.location)
+        return self._move(element=self.agent, direction=direction)
+
+    def move_robot(self, direction: tuple[int, int]) -> None:
+        """Move robot on the grid"""
+
+        self._move(element=self.robot, direction=direction)
+
+    def _move(self, element: GridElement, direction: tuple[int, int]) -> Object | None:
+        """Move a grid element (agent or robot), , returning the picked object if any"""
+
+        new_location = copy.deepcopy(element.location)
         new_location.add(
             direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
         )
 
-        if new_location != self.agent.location:
-            element = self._get_element(location=new_location)
-            if element is not None and isinstance(element, Object):
-                self.objects.remove(element)
-
-            # Update agent location
-            self.agent.location = new_location
-
-            return element
+        if new_location != element.location:
+            existing_element = self._get_element(location=new_location)
+            if existing_element is not None:
+                if isinstance(existing_element, Object):
+                    self.objects.remove(existing_element)
+                    element.location = new_location
+                    return existing_element
+            else:
+                element.location = new_location
 
         return None
 
@@ -131,6 +162,10 @@ class Grid:
         # Draw agent
         self._agent.update()
         self._agent.draw(self.canvas)
+
+        # Draw robot
+        self._robot.update()
+        self._robot.draw(self.canvas)
 
         # Draw separation lines between grid cells.
         # Draw vertical lines
