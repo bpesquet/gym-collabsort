@@ -3,28 +3,11 @@ Content of grid cells.
 """
 
 from dataclasses import dataclass
-from enum import Enum, StrEnum
 
 import numpy as np
 import pygame
 
-from gym_collabsort.config import Config
-
-
-class Color(StrEnum):
-    """Possible colors for an object"""
-
-    RED = "red"
-    BLUE = "blue"
-    YELLOW = "yellow"
-
-
-class Shape(Enum):
-    """Possible shapes for an object"""
-
-    SQUARE = 1
-    CIRCLE = 2
-    TRIANGLE = 3
+from gym_collabsort.config import Color, Config, Shape
 
 
 @dataclass
@@ -42,10 +25,10 @@ class Location:
 
         return np.array([self.row, self.col], dtype=int)
 
-    def add(
+    def add_(
         self, direction: tuple[int, int], clip: tuple[int, int] | None = None
     ) -> None:
-        """Update location according to a given direction"""
+        """Update location in-place according to a given direction"""
 
         loc_array = self.as_array() + np.array(direction, dtype=int)
 
@@ -56,8 +39,8 @@ class Location:
         self.col = loc_array[1]
 
 
-class GridElement(pygame.sprite.Sprite):
-    """Base class for grid elements"""
+class Cell(pygame.sprite.Sprite):
+    """A grid cell"""
 
     def __init__(self, location: Location, config: Config) -> None:
         super().__init__()
@@ -65,12 +48,12 @@ class GridElement(pygame.sprite.Sprite):
         self.location = location
         self.config = config
 
-        # Init object image
+        # Init cell image
         self.image = pygame.Surface(size=(config.cell_size, config.cell_size))
         self.image.fill(color=config.background_color)
 
     def update(self) -> None:
-        """Move the grid image"""
+        """Update the cell image"""
 
         # Update the centered rectangular area of the element's image
         self.rect = self.image.get_rect(center=self._get_center())
@@ -90,7 +73,7 @@ class GridElement(pygame.sprite.Sprite):
         return f"Location: {self.location}"
 
 
-class Object(GridElement):
+class Object(Cell):
     """A pickable object"""
 
     def __init__(
@@ -133,59 +116,55 @@ class Object(GridElement):
         return super().__str__() + f". Color={self.color}. Shape={self.shape}"
 
 
-class Agent(GridElement):
-    """The agent"""
+class ArmPart(Cell):
+    """Part of the agent or robot arm"""
 
-    def __init__(self, location: Location, config: Config) -> None:
+    def __init__(self, location: Location, config: Config, is_agent: bool) -> None:
         super().__init__(location=location, config=config)
 
-        # Draw agent on the image as a "+" sign.
-        # Draw vertical line
-        pygame.draw.line(
-            surface=self.image,
-            color="black",
-            start_pos=(config.cell_size // 2, 0),
-            end_pos=(config.cell_size // 2, config.cell_size),
-            width=3,
-        )
-        # Draw horizontal line
-        pygame.draw.line(
-            surface=self.image,
-            color="black",
-            start_pos=(0, config.cell_size // 2),
-            end_pos=(config.cell_size, config.cell_size // 2),
-            width=3,
-        )
+        self.is_agent = is_agent
+
+        if self.is_agent:
+            # Draw part of agent arm as a "+" sign.
+            # Draw vertical line
+            pygame.draw.line(
+                surface=self.image,
+                color="black",
+                start_pos=(config.cell_size // 2, 0),
+                end_pos=(config.cell_size // 2, config.cell_size),
+                width=3,
+            )
+            # Draw horizontal line
+            pygame.draw.line(
+                surface=self.image,
+                color="black",
+                start_pos=(0, config.cell_size // 2),
+                end_pos=(config.cell_size, config.cell_size // 2),
+                width=3,
+            )
+        else:
+            # Draw part of robot arm as a "x" sign
+            pygame.draw.line(
+                surface=self.image,
+                color="black",
+                start_pos=(0, 0),
+                end_pos=(config.cell_size, config.cell_size),
+                width=3,
+            )
+            pygame.draw.line(
+                surface=self.image,
+                color="black",
+                start_pos=(0, config.cell_size),
+                end_pos=(config.cell_size, 0),
+                width=3,
+            )
 
         # Define the centered rectangular area of the agent image
         self.rect = self.image.get_rect(center=self._get_center())
 
 
-class Robot(GridElement):
-    """The robot"""
+class Clamp(ArmPart):
+    def __init__(self, location: Location, config: Config, is_agent: bool):
+        super().__init__(location=location, config=config, is_agent=is_agent)
 
-    def __init__(self, location: Location, config: Config) -> None:
-        super().__init__(location=location, config=config)
-
-        # Draw robot on the image as a "x" sign.
-        pygame.draw.line(
-            surface=self.image,
-            color="black",
-            start_pos=(0, 0),
-            end_pos=(config.cell_size, config.cell_size),
-            width=3,
-        )
-        pygame.draw.line(
-            surface=self.image,
-            color="black",
-            start_pos=(0, config.cell_size),
-            end_pos=(config.cell_size, 0),
-            width=3,
-        )
-
-        # Define the centered rectangular area of the image
-        self.rect = self.image.get_rect(center=self._get_center())
-        self.rect = self.image.get_rect(center=self._get_center())
-        self.rect = self.image.get_rect(center=self._get_center())
-        self.rect = self.image.get_rect(center=self._get_center())
-        self.rect = self.image.get_rect(center=self._get_center())
+        self.is_empty = True

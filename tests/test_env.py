@@ -2,7 +2,8 @@
 Unit tests for environment.
 """
 
-from gym_collabsort.envs.collabsort import CollabSortEnv, RenderMode
+from gym_collabsort.config import Color, Config
+from gym_collabsort.envs.collabsort import Action, CollabSortEnv, RenderMode
 
 
 def test_reset() -> None:
@@ -12,16 +13,18 @@ def test_reset() -> None:
     assert info == {}
 
 
-def test_render_human() -> None:
-    """Test environment rendering for humans"""
+def test_robot() -> None:
+    # Define a very basic config in order to shorten episode
+    config = Config(n_objects=2, object_colors=(Color.BLUE,))
 
-    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
+    env = CollabSortEnv(render_mode=RenderMode.HUMAN, config=config)
     env.reset()
 
     ep_over = False
     ep_reward = 0
     while not ep_over:
-        _, reward, terminated, truncated, _ = env.step(env.action_space.sample())
+        # Agent is never moving, only robot is picking objects
+        _, reward, terminated, truncated, _ = env.step(action=Action.WAIT.value)
 
         ep_reward += reward
         ep_over = terminated or truncated
@@ -31,11 +34,11 @@ def test_render_human() -> None:
 
 
 def test_render_rgb() -> None:
-    """Test environment rendering as rgb frame"""
-
     env = CollabSortEnv(render_mode=RenderMode.RGB_ARRAY)
     env.reset()
 
     env.step(env.action_space.sample())
     frame = env.render()
+    assert frame.ndim == 3
+    assert frame.ndim == 3
     assert frame.ndim == 3

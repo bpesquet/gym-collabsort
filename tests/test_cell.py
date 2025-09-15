@@ -17,16 +17,16 @@ def test_location() -> None:
     assert loc_array[1] == col
 
     direction = np.array([1, 1])
-    loc.add(direction=direction)
+    loc.add_(direction=direction)
     assert loc.row == row + 1
     assert loc.col == col + 1
 
     clip = (5, 7)
-    loc.add(direction=(10, 10), clip=clip)
+    loc.add_(direction=(10, 10), clip=clip)
     assert loc.row == clip[0]
     assert loc.col == clip[1]
 
-    loc.add(direction=(-10, -10), clip=clip)
+    loc.add_(direction=(-10, -10), clip=clip)
     assert loc.row == 0
     assert loc.col == 0
 

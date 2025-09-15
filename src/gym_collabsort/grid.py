@@ -2,13 +2,12 @@
 The 2D grid containing objects and agents.
 """
 
-import copy
-
 import numpy as np
 import pygame
-from pygame.sprite import Group, GroupSingle
+from pygame.sprite import Group
 
-from .cell import Agent, Color, GridElement, Location, Object, Robot, Shape
+from .arm import Arm
+from .cell import Cell, Location, Object
 from .config import Config
 
 
@@ -28,15 +27,9 @@ class Grid:
         # Create an empty group for grid objects
         self.objects: Group[Object] = Group()
 
-        # Put the agent in its own group for rendering
-        self._agent: GroupSingle[Agent] = GroupSingle(
-            Agent(location=Location(-1, -1), config=config)
-        )
-
-        # Put the robot in its own group for rendering
-        self._robot: GroupSingle[Robot] = GroupSingle(
-            Robot(location=Location(-1, -1), config=config)
-        )
+        # Create agent and robot arms as empty groups of parts
+        self.agent_arm: Arm = Arm(grid=self, config=self.config, is_agent=True)
+        self.robot_arm: Arm = Arm(grid=self, config=self.config, is_agent=False)
 
     @property
     def window_size(self) -> tuple[int, int]:
@@ -45,18 +38,6 @@ class Grid:
         window_width = self.config.n_cols * self.config.cell_size
         window_height = self.config.n_rows * self.config.cell_size
         return (window_width, window_height)
-
-    @property
-    def agent(self) -> Agent:
-        """Get the agent"""
-
-        return self._agent.sprite
-
-    @property
-    def robot(self) -> Robot:
-        """Get the robot"""
-
-        return self._robot.sprite
 
     def populate(
         self,
@@ -72,13 +53,17 @@ class Grid:
             f"Not enough space on the grid for {self.config.n_objects} objects"
         )
 
-        # Put agent at the center of the bottom row
-        self.agent.location = Location(
-            row=self.config.n_rows - 1, col=(self.config.n_cols - 1) // 2
+        # Init agent arm at the center of the bottom row
+        self.agent_arm.reset(
+            starting_location=Location(
+                row=self.config.n_rows - 1, col=(self.config.n_cols - 1) // 2
+            )
         )
 
-        # Put robot at the center of the top row
-        self.robot.location = Location(row=0, col=(self.config.n_cols - 1) // 2)
+        # Init robot arm at the center of the top row
+        self.robot_arm.reset(
+            starting_location=Location(row=0, col=(self.config.n_cols - 1) // 2),
+        )
 
         # Add objects to the grid in an available location
         self.objects.empty()
@@ -88,10 +73,11 @@ class Grid:
                 row=rng.integers(low=0, high=self.config.n_rows),
                 col=rng.integers(low=0, high=self.config.n_cols),
             )
-            if self._get_element(location=obj_location) is None:
+            if self._get_cell(location=obj_location) is None:
                 # Randomly define object properties
-                color = rng.choice(list(Color))
-                shape = rng.choice(list(Shape))
+
+                color = rng.choice(a=self.config.object_colors)
+                shape = rng.choice(a=self.config.object_shapes)
 
                 # Add new object to group
                 self.objects.add(
@@ -104,49 +90,21 @@ class Grid:
                 )
                 remaining_objects -= 1
 
-    def _get_element(self, location: Location) -> GridElement | None:
+    def _get_cell(self, location: Location) -> Cell | None:
         # Check for existing objects
         for obj in self.objects:
             if obj.location == location:
                 return obj
 
-        # Check for agent
-        if self.agent.location == location:
-            return self.agent
+        # Check for agent arm
+        agent_arm_part = self.agent_arm.get_part(location=location)
+        if agent_arm_part is not None:
+            return agent_arm_part
 
-        # Check for robot
-        if self.robot.location == location:
-            return self.robot
-
-        return None
-
-    def move_agent(self, direction: tuple[int, int]) -> Object | None:
-        """Move agent on the grid, returning the picked object if any"""
-
-        return self._move(element=self.agent, direction=direction)
-
-    def move_robot(self, direction: tuple[int, int]) -> None:
-        """Move robot on the grid"""
-
-        self._move(element=self.robot, direction=direction)
-
-    def _move(self, element: GridElement, direction: tuple[int, int]) -> Object | None:
-        """Move a grid element (agent or robot), , returning the picked object if any"""
-
-        new_location = copy.deepcopy(element.location)
-        new_location.add(
-            direction=direction, clip=(self.config.n_rows - 1, self.config.n_cols - 1)
-        )
-
-        if new_location != element.location:
-            existing_element = self._get_element(location=new_location)
-            if existing_element is not None:
-                if isinstance(existing_element, Object):
-                    self.objects.remove(existing_element)
-                    element.location = new_location
-                    return existing_element
-            else:
-                element.location = new_location
+        # Check for robot arm
+        robot_arm_part = self.robot_arm.get_part(location=location)
+        if robot_arm_part is not None:
+            return robot_arm_part
 
         return None
 
@@ -157,15 +115,12 @@ class Grid:
         self.canvas.fill(self.config.background_color)
 
         # Draw objects
-        self.objects.draw(self.canvas)
+        self.objects.update()
+        self.objects.draw(surface=self.canvas)
 
-        # Draw agent
-        self._agent.update()
-        self._agent.draw(self.canvas)
-
-        # Draw robot
-        self._robot.update()
-        self._robot.draw(self.canvas)
+        # Draw agent and robot arms
+        self.agent_arm.draw(surface=self.canvas)
+        self.robot_arm.draw(surface=self.canvas)
 
         # Draw separation lines between grid cells.
         # Draw vertical lines
@@ -207,7 +162,5 @@ class Grid:
             grid_str += ": "
             grid_str += " ".join(map(str, self.objects))
             grid_str += "]"
-
-        grid_str += f". Agent: {self.agent.location}"
 
         return grid_str

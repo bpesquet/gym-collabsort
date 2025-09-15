@@ -17,10 +17,11 @@ from gym_collabsort.grid import Grid
 class Action(Enum):
     """Possible actions for an agent"""
 
-    RIGHT = 0
-    UP = 1
-    LEFT = 2
-    DOWN = 3
+    WAIT = 0
+    RIGHT = 1
+    UP = 2
+    LEFT = 3
+    DOWN = 4
 
 
 class RenderMode(StrEnum):
@@ -60,7 +61,7 @@ class CollabSortEnv(gym.Env):
         self.window = None
         self.clock = None
 
-        self.grid = Grid(config=config)
+        self.grid = Grid(config=self.config)
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -68,6 +69,7 @@ class CollabSortEnv(gym.Env):
         i.e. 0 corresponds to "right", 1 to "up" etc.
         """
         self._action_to_direction = {
+            Action.WAIT.value: (0, 0),
             Action.RIGHT.value: (1, 0),
             Action.UP.value: (0, 1),
             Action.LEFT.value: (-1, 0),
@@ -129,11 +131,11 @@ class CollabSortEnv(gym.Env):
         """Return an observation given to the agent"""
 
         # An observation is a dictionary containing:
-        # - the agent location
+        # - the location of agent arm clamp
         # - properties for all objects
         objects = [self._get_object_props(object=obj) for obj in self.grid.objects]
         return {
-            "self_location": self.grid.agent.location.as_array(),
+            "clamp_location": self.grid.agent_arm.clamp.location.as_array(),
             "objects": objects,
         }
 
@@ -146,20 +148,20 @@ class CollabSortEnv(gym.Env):
             "shape": object.shape,
         }
 
-    def step(self, action) -> tuple[dict, int, bool, bool, dict]:
+    def step(self, action: Action) -> tuple[dict, int, bool, bool, dict]:
+        # Move robot
+        robot_action: Action = self.action_space.sample()
+        robot_direction = self._action_to_direction[robot_action]
+        self.grid.robot_arm.move(direction=robot_direction)
+
         # Map the action to the direction we walk in
         agent_direction = self._action_to_direction[action]
 
-        # Move robot
-        robot_action = self.action_space.sample()
-        robot_direction = self._action_to_direction[robot_action]
-        self.grid.move_robot(direction=robot_direction)
-
         # Try to move agent and compute associated reward
         reward = -0.1
-        picked_object = self.grid.move_agent(direction=agent_direction)
-        if picked_object is not None:
-            if picked_object.color == Color.BLUE:
+        dropped_object = self.grid.agent_arm.move(direction=agent_direction)
+        if dropped_object is not None:
+            if dropped_object.color == Color.BLUE:
                 reward = 2
             else:
                 reward = -2
