@@ -13,6 +13,8 @@ from gym_collabsort.cell import Color, Object, Shape
 from gym_collabsort.config import Config
 from gym_collabsort.grid import Grid
 
+from .robot import Robot
+
 
 class Action(Enum):
     """Possible actions for an agent"""
@@ -62,6 +64,7 @@ class CollabSortEnv(gym.Env):
         self.clock = None
 
         self.grid = Grid(config=self.config)
+        self.robot = Robot(grid=self, config=self.config)
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -150,9 +153,7 @@ class CollabSortEnv(gym.Env):
 
     def step(self, action: Action) -> tuple[dict, int, bool, bool, dict]:
         # Move robot
-        robot_action: Action = self.action_space.sample()
-        robot_direction = self._action_to_direction[robot_action]
-        self.grid.robot_arm.move(direction=robot_direction)
+        self.grid.robot_arm.move(direction=self.robot.choose_direction())
 
         # Map the action to the direction we walk in
         agent_direction = self._action_to_direction[action]
@@ -208,4 +209,5 @@ class CollabSortEnv(gym.Env):
     def close(self) -> None:
         if self.window is not None:
             pygame.display.quit()
+            pygame.quit()
             pygame.quit()

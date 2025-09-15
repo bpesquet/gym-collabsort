@@ -2,8 +2,6 @@
 Unit tests for cell elements.
 """
 
-import numpy as np
-
 from gym_collabsort.cell import Color, Location, Object, Shape
 from gym_collabsort.config import Config
 
@@ -16,9 +14,8 @@ def test_location() -> None:
     assert loc_array[0] == row
     assert loc_array[1] == col
 
-    direction = np.array([1, 1])
-    loc.add_(direction=direction)
-    assert loc.row == row + 1
+    loc.add_(direction=(0, 1))
+    assert loc.row == row
     assert loc.col == col + 1
 
     clip = (5, 7)
