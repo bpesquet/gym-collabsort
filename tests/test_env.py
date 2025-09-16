@@ -15,7 +15,7 @@ def test_reset() -> None:
 
 def test_robot() -> None:
     # Define a very basic config in order to shorten episode
-    config = Config(n_objects=2, object_colors=(Color.BLUE,))
+    config = Config(n_objects=20, object_colors=(Color.BLUE,))
 
     env = CollabSortEnv(render_mode=RenderMode.HUMAN, config=config)
     env.reset()

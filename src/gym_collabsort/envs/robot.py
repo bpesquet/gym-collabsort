@@ -20,4 +20,4 @@ class Robot:
         self.config = config
 
     def choose_direction(self) -> tuple[int, int]:
-        return (1, 0)
+        return (0, -1)

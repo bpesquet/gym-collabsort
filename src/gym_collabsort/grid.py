@@ -4,10 +4,11 @@ The 2D grid containing objects and agents.
 
 import numpy as np
 import pygame
+from pygame.math import Vector2
 from pygame.sprite import Group
 
 from .arm import Arm
-from .cell import Cell, Location, Object
+from .cell import GridElement, Object
 from .config import Config
 
 
@@ -23,6 +24,8 @@ class Grid:
 
         # Define the surface to draw upon
         self.canvas = pygame.Surface(size=self.window_size)
+        # fill the surface with background color to wipe away anything previously drawed
+        self.canvas.fill(self.config.background_color)
 
         # Create an empty group for grid objects
         self.objects: Group[Object] = Group()
@@ -55,27 +58,26 @@ class Grid:
 
         # Init agent arm at the center of the bottom row
         self.agent_arm.reset(
-            starting_location=Location(
-                row=self.config.n_rows - 1, col=(self.config.n_cols - 1) // 2
-            )
+            starting_location=Vector2(x=(self.config.n_cols - 1) // 2, y=0)
         )
 
         # Init robot arm at the center of the top row
         self.robot_arm.reset(
-            starting_location=Location(row=0, col=(self.config.n_cols - 1) // 2),
+            starting_location=Vector2(
+                x=(self.config.n_cols - 1) // 2, y=self.config.n_rows - 1
+            )
         )
 
         # Add objects to the grid in an available location
         self.objects.empty()
         remaining_objects = self.config.n_objects
         while remaining_objects > 0:
-            obj_location = Location(
-                row=rng.integers(low=0, high=self.config.n_rows),
-                col=rng.integers(low=0, high=self.config.n_cols),
+            obj_location = Vector2(
+                x=rng.integers(low=0, high=self.config.n_cols),
+                y=rng.integers(low=0, high=self.config.n_rows),
             )
             if self._get_cell(location=obj_location) is None:
                 # Randomly define object properties
-
                 color = rng.choice(a=self.config.object_colors)
                 shape = rng.choice(a=self.config.object_shapes)
 
@@ -90,7 +92,7 @@ class Grid:
                 )
                 remaining_objects -= 1
 
-    def _get_cell(self, location: Location) -> Cell | None:
+    def _get_cell(self, location: Vector2) -> GridElement | None:
         # Check for existing objects
         for obj in self.objects:
             if obj.location == location:
@@ -110,9 +112,6 @@ class Grid:
 
     def draw(self) -> pygame.Surface:
         """Draw the grid"""
-
-        # fill the surface with background color to wipe away anything previously drawed
-        self.canvas.fill(self.config.background_color)
 
         # Draw objects
         self.objects.update()

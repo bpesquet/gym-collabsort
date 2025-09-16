@@ -27,8 +27,8 @@ class Config:
     """Configuration class with default values"""
 
     # Grid shape
-    n_rows: int = 4
-    n_cols: int = 9
+    n_cols: int = 11
+    n_rows: int = 6
 
     # Size in pixels of a (square) grid cell
     cell_size: int = 50
@@ -46,4 +46,4 @@ class Config:
     object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
 
     # Frames Per Second for env rendering
-    render_fps: int = 1
+    render_fps: int = 2

@@ -2,34 +2,14 @@
 Unit tests for cell elements.
 """
 
-from gym_collabsort.cell import Color, Location, Object, Shape
+from pygame.math import Vector2
+
+from gym_collabsort.cell import Color, Object, Shape
 from gym_collabsort.config import Config
 
 
-def test_location() -> None:
-    row, col = 2, 3
-    loc = Location(row=row, col=col)
-
-    loc_array = loc.as_array()
-    assert loc_array[0] == row
-    assert loc_array[1] == col
-
-    loc.add_(direction=(0, 1))
-    assert loc.row == row
-    assert loc.col == col + 1
-
-    clip = (5, 7)
-    loc.add_(direction=(10, 10), clip=clip)
-    assert loc.row == clip[0]
-    assert loc.col == clip[1]
-
-    loc.add_(direction=(-10, -10), clip=clip)
-    assert loc.row == 0
-    assert loc.col == 0
-
-
 def test_object() -> None:
-    obj_loc = Location(1, 6)
+    obj_loc = Vector2(x=1, y=6)
     color = Color.BLUE
     shape = Shape.TRIANGLE
 

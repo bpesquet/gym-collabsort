@@ -138,7 +138,7 @@ class CollabSortEnv(gym.Env):
         # - properties for all objects
         objects = [self._get_object_props(object=obj) for obj in self.grid.objects]
         return {
-            "clamp_location": self.grid.agent_arm.clamp.location.as_array(),
+            "clamp_location": self.grid.agent_arm.claw.location,
             "objects": objects,
         }
 
@@ -146,7 +146,7 @@ class CollabSortEnv(gym.Env):
         """Return properties for a aspecific object"""
 
         return {
-            "location": object.location.as_array(),
+            "location": object.location,
             "color": object.color,
             "shape": object.shape,
         }
