@@ -4,7 +4,6 @@ Arm-related definitions.
 
 from __future__ import annotations
 
-import copy
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -12,7 +11,7 @@ from pygame.math import Vector2
 from pygame.sprite import Group, GroupSingle
 from pygame.surface import Surface
 
-from .cell import ArmPart, Object
+from .cell import ArmPart, Color, Object, Shape
 from .config import Config
 
 if TYPE_CHECKING:
@@ -46,7 +45,7 @@ class Arm:
         )
         self.parts.empty()
 
-    def move(self, direction: tuple[int, int]) -> Object | None:
+    def move(self, direction: tuple[int, int]) -> tuple[Color, Shape] | None:
         """Move the arm in a given direction"""
 
         new_claw_location = Vector2(
@@ -62,9 +61,9 @@ class Arm:
             ),
         )
 
-        self._move_claw(location=new_claw_location)
+        return self._move_claw(location=new_claw_location)
 
-    def _move_claw(self, location: Vector2) -> Object | None:
+    def _move_claw(self, location: Vector2) -> tuple[Color, Shape] | None:
         """Move the arm claw to a given location"""
 
         if location != self.claw.location:
@@ -88,17 +87,7 @@ class Arm:
                 arm_part: ArmPart = cell_at_new_location
                 if arm_part.is_agent == self.is_agent:
                     # Part belong to this arm: retract the arm to new location
-                    self._retract(location=location)
-
-                    # If the arm is retracted to its starting position, drop the picked object
-                    if location == self.starting_location:
-                        dropped_object = copy.deepcopy(self.claw.picked_object)
-
-                        # Drop previously picked object
-                        self.grid.objects.remove(self.claw.picked_object)
-                        self.claw.picked_object = None
-
-                        return dropped_object
+                    return self._retract(location=location)
 
         return None
 
@@ -125,7 +114,7 @@ class Arm:
 
         return None
 
-    def _extend(self, location: Vector2, picked_object: Object | None = None):
+    def _extend(self, location: Vector2, picked_object: Object | None = None) -> None:
         """Extend the arm to a new location"""
 
         # Add a part at current location of claw
@@ -145,20 +134,31 @@ class Arm:
             # Move picked object alongside arm claw
             self.claw.picked_object.location = location
 
-    def _retract(self, location: Vector2):
+    def _retract(self, location: Vector2) -> tuple[Color, Shape] | None:
         """Retract the arm to a new location"""
 
         # Remove the existing part at new location
-        self.parts.remove(
-            ArmPart(
-                location=location,
-                config=self.config,
-                is_agent=self.is_agent,
-            )
-        )
+        self.get_part(location=location).kill()
+
         # Move claw to new location
         self.claw.location = location
 
         if self.claw.picked_object is not None:
-            # Move picked object alongside arm claw
-            self.claw.picked_object.location = location
+            # If the arm is retracted to its starting position, drop the picked object
+            if location == self.starting_location:
+                dropped_object_props = (
+                    self.claw.picked_object.color,
+                    self.claw.picked_object.shape,
+                )
+
+                # Drop the picked object
+                self.grid.objects.remove(self.claw.picked_object)
+                self.claw.picked_object = None
+
+                # Return it for reward computation
+                return dropped_object_props
+            else:
+                # Otherwise, move the picked object alongside arm claw
+                self.claw.picked_object.location = location
+
+        return None

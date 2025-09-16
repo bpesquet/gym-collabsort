@@ -24,8 +24,6 @@ class Grid:
 
         # Define the surface to draw upon
         self.canvas = pygame.Surface(size=self.window_size)
-        # fill the surface with background color to wipe away anything previously drawed
-        self.canvas.fill(self.config.background_color)
 
         # Create an empty group for grid objects
         self.objects: Group[Object] = Group()
@@ -112,6 +110,9 @@ class Grid:
 
     def draw(self) -> pygame.Surface:
         """Draw the grid"""
+
+        # fill the surface with background color to wipe away anything previously drawed
+        self.canvas.fill(self.config.background_color)
 
         # Draw objects
         self.objects.update()

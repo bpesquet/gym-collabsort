@@ -27,8 +27,8 @@ class Config:
     """Configuration class with default values"""
 
     # Grid shape
-    n_cols: int = 11
-    n_rows: int = 6
+    n_cols: int = 20
+    n_rows: int = 10
 
     # Size in pixels of a (square) grid cell
     cell_size: int = 50

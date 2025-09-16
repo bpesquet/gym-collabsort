@@ -64,7 +64,7 @@ class CollabSortEnv(gym.Env):
         self.clock = None
 
         self.grid = Grid(config=self.config)
-        self.robot = Robot(grid=self, config=self.config)
+        self.robot = Robot(grid=self.grid, config=self.config)
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -160,9 +160,9 @@ class CollabSortEnv(gym.Env):
 
         # Try to move agent and compute associated reward
         reward = -0.1
-        dropped_object = self.grid.agent_arm.move(direction=agent_direction)
-        if dropped_object is not None:
-            if dropped_object.color == Color.BLUE:
+        dropped_object_props = self.grid.agent_arm.move(direction=agent_direction)
+        if dropped_object_props is not None:
+            if dropped_object_props.color == Color.BLUE:
                 reward = 2
             else:
                 reward = -2

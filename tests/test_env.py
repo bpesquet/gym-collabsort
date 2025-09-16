@@ -24,7 +24,9 @@ def test_robot() -> None:
     ep_reward = 0
     while not ep_over:
         # Agent is never moving, only robot is picking objects
-        _, reward, terminated, truncated, _ = env.step(action=Action.WAIT.value)
+        _, reward, terminated, truncated, _ = env.step(
+            action=Action.WAIT.value
+        )  # env.action_space.sample())
 
         ep_reward += reward
         ep_over = terminated or truncated

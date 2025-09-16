@@ -20,4 +20,7 @@ class Robot:
         self.config = config
 
     def choose_direction(self) -> tuple[int, int]:
-        return (0, -1)
+        if self.grid.robot_arm.claw.picked_object is not None:
+            return (0, 1)
+        else:
+            return (0, -1)

@@ -22,7 +22,7 @@ class GridElement(pygame.sprite.Sprite):
         self.image.fill(color=config.background_color)
 
     def update(self) -> None:
-        """Update the cell image"""
+        """Update the element image"""
 
         # Update the centered rectangular area of the element's image
         self.rect = self.image.get_rect(center=self._get_center_coords())
@@ -91,9 +91,9 @@ class ArmPart(GridElement):
         super().__init__(location=location, config=config)
 
         self.is_agent = is_agent
-        self.picked_object = None
 
-        self._draw()
+        self._image = self.image.copy()
+        self.picked_object = None
 
     @property
     def picked_object(self) -> Object:
@@ -105,8 +105,14 @@ class ArmPart(GridElement):
         self._draw()
 
     def _draw(self) -> None:
+        """Update the image"""
+
         if self.picked_object is not None:
+            # Draw on top of object image
             self.image = self.picked_object.image.copy()
+        else:
+            # Draw only claw without any object
+            self.image = self._image.copy()
 
         if self.is_agent:
             # Draw part of agent arm as a "+" sign.
