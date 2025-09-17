@@ -2,7 +2,6 @@
 Unit tests for environment.
 """
 
-from gym_collabsort.config import Color, Config
 from gym_collabsort.envs.collabsort import Action, CollabSortEnv, RenderMode
 
 
@@ -14,10 +13,7 @@ def test_reset() -> None:
 
 
 def test_robot() -> None:
-    # Define a very basic config in order to shorten episode
-    config = Config(n_objects=20, object_colors=(Color.BLUE,))
-
-    env = CollabSortEnv(render_mode=RenderMode.HUMAN, config=config)
+    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
     env.reset()
 
     ep_over = False
@@ -41,6 +37,7 @@ def test_render_rgb() -> None:
 
     env.step(env.action_space.sample())
     frame = env.render()
+    assert frame.ndim == 3
     assert frame.ndim == 3
     assert frame.ndim == 3
     assert frame.ndim == 3

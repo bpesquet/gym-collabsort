@@ -26,6 +26,9 @@ class Shape(Enum):
 class Config:
     """Configuration class with default values"""
 
+    # Frames Per Second for env rendering
+    render_fps: int = 30
+
     # Grid shape
     n_cols: int = 20
     n_rows: int = 10
@@ -37,7 +40,7 @@ class Config:
     background_color: str = "white"
 
     # Number of pickable objects on the grid
-    n_objects: int = 10
+    n_objects: int = 20
 
     # Possible colors for grid objects
     object_colors: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
@@ -45,5 +48,8 @@ class Config:
     # Possible shapes for grid objects
     object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
 
-    # Frames Per Second for env rendering
-    render_fps: int = 2
+    # Ordered list of robot color priorities for selecting objects to pick
+    robor_color_priorities: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
+
+    # Ordered list of robot shape priorities for selecting objects to pick
+    robor_shape_priorities: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)

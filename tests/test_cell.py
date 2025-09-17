@@ -14,7 +14,6 @@ def test_object() -> None:
     shape = Shape.TRIANGLE
 
     obj = Object(location=obj_loc, config=Config(), color=color, shape=shape)
-    print(obj)
 
     assert obj.location == obj_loc
     assert obj.image is not None

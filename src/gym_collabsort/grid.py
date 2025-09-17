@@ -8,7 +8,7 @@ from pygame.math import Vector2
 from pygame.sprite import Group
 
 from .arm import Arm
-from .cell import GridElement, Object
+from .cell import Color, GridElement, Object, Shape
 from .config import Config
 
 
@@ -74,7 +74,7 @@ class Grid:
                 x=rng.integers(low=0, high=self.config.n_cols),
                 y=rng.integers(low=0, high=self.config.n_rows),
             )
-            if self._get_cell(location=obj_location) is None:
+            if self.get_element(location=obj_location) is None:
                 # Randomly define object properties
                 color = rng.choice(a=self.config.object_colors)
                 shape = rng.choice(a=self.config.object_shapes)
@@ -90,7 +90,7 @@ class Grid:
                 )
                 remaining_objects -= 1
 
-    def _get_cell(self, location: Vector2) -> GridElement | None:
+    def get_element(self, location: Vector2) -> GridElement | None:
         # Check for existing objects
         for obj in self.objects:
             if obj.location == location:
@@ -107,6 +107,24 @@ class Grid:
             return robot_arm_part
 
         return None
+
+    def get_objects(self, colors: tuple[Color], shapes: tuple[Shape]) -> list[Object]:
+        """Get the ordered list of objects with compatible colors and shapes"""
+
+        shape_compatible_objects: list[Object] = []
+        compatible_objects: list[Object] = []
+
+        for shape in shapes:
+            for obj in self.objects:
+                if obj.shape == shape:
+                    shape_compatible_objects.append(obj)
+
+        for color in colors:
+            for obj in shape_compatible_objects:
+                if obj.color == color:
+                    compatible_objects.append(obj)
+
+        return compatible_objects
 
     def draw(self) -> pygame.Surface:
         """Draw the grid"""

@@ -12,7 +12,6 @@ def test_populate() -> None:
     assert len(grid.objects) == 0
 
     grid.populate(rng=np.random.default_rng())
-    print(grid)
     assert len(grid.objects) == grid.config.n_objects
 
 

@@ -151,7 +151,7 @@ class CollabSortEnv(gym.Env):
             "shape": object.shape,
         }
 
-    def step(self, action: Action) -> tuple[dict, int, bool, bool, dict]:
+    def step(self, action: int) -> tuple[dict, int, bool, bool, dict]:
         # Move robot
         self.grid.robot_arm.move(direction=self.robot.choose_direction())
 
@@ -169,9 +169,8 @@ class CollabSortEnv(gym.Env):
 
         observation = self._get_obs()
 
-        # Episode is terminated when all blue objects have been picked upp
-        nb_blue = sum(1 for obj in self.grid.objects if obj.color == Color.BLUE)
-        terminated = nb_blue == 0
+        # Episode is terminated when all objects have been picked up
+        terminated = len(self.grid.objects) == 0
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
