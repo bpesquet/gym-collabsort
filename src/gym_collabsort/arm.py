@@ -29,6 +29,7 @@ class Arm:
         self.starting_location: Vector2 = None
         self._claw: GroupSingle[ArmPart] = GroupSingle()
         self.parts: Group[ArmPart] = Group()
+        self.previous_claw_locations: list[Vector2] = []
 
     @property
     def claw(self) -> ArmPart:
@@ -48,6 +49,7 @@ class Arm:
     def move(self, direction: tuple[int, int]) -> tuple[Color, Shape] | None:
         """Move the arm in a given direction"""
 
+        # Clip the new location to grid dimensions
         new_claw_location = Vector2(
             x=np.clip(
                 a=self.claw.location.x + direction[0],
@@ -67,7 +69,7 @@ class Arm:
         """Move the arm claw to a given location"""
 
         if location != self.claw.location:
-            cell_at_new_location = self.grid._get_cell(location=location)
+            cell_at_new_location = self.grid.get_element(location=location)
 
             if cell_at_new_location is None:
                 # New location is empty
@@ -85,7 +87,10 @@ class Arm:
                 # New location contains an arm part (agent or robot)
 
                 arm_part: ArmPart = cell_at_new_location
-                if arm_part.is_agent == self.is_agent:
+                if (
+                    arm_part.is_agent == self.is_agent
+                    and location == self.previous_claw_locations[-1]
+                ):
                     # Part belong to this arm: retract the arm to new location
                     return self._retract(location=location)
 
@@ -127,6 +132,7 @@ class Arm:
         )
 
         # Move claw to new location
+        self.previous_claw_locations.append(self.claw.location.copy())
         self.claw.location = location
 
         if picked_object is not None:
@@ -141,6 +147,7 @@ class Arm:
         self.get_part(location=location).kill()
 
         # Move claw to new location
+        self.previous_claw_locations.pop()
         self.claw.location = location
 
         if self.claw.picked_object is not None:
