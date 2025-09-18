@@ -17,7 +17,7 @@ def test_random_actions() -> None:
     env.reset()
 
     ep_reward = 0
-    for _ in range(50):
+    for _ in range(75):
         _, reward, _, _, _ = env.step(env.action_space.sample())
 
         ep_reward += reward
@@ -34,5 +34,5 @@ def test_render_rgb() -> None:
 
     frame = env.render()
     assert frame.ndim == 3
-    assert frame.shape[0] == env.config.board_width
-    assert frame.shape[1] == env.config.board_height
+    assert frame.shape[0] == env.config.board_height
+    assert frame.shape[1] == env.config.board_width

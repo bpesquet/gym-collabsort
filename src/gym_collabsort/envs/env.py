@@ -123,7 +123,7 @@ class CollabSortEnv(gym.Env):
         """Return an observation given to the agent"""
 
         # An observation is a dictionary containing:
-        # - the coordinates of agent arm clamp
+        # - the coordinates of agent arm claw
         # - properties for all objects
         objects = [self._get_object_props(object=obj) for obj in self.board.objects]
         return {
@@ -140,8 +140,12 @@ class CollabSortEnv(gym.Env):
             "shape": object.shape,
         }
 
-    def step(self, action: int) -> tuple[dict, int, bool, bool, dict]:
-        # TODO
+    def step(self, action: dict) -> tuple[dict, int, bool, bool, dict]:
+        if action["action"] == Action.AIM.value:
+            pass
+        elif action == Action.EXTEND.value:
+            pass
+
         reward = 0
 
         observation = self._get_obs()

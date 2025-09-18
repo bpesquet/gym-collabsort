@@ -81,22 +81,22 @@ class ArmBase(BoardElement):
 
         # Draw an empty square box
         # Draw vertical lines
-        for x in (0, config.arm_base_size):
+        for x in (0, config.arm_base_size - 1):
             pygame.draw.line(
                 surface=self.image,
                 color="black",
                 start_pos=(x, 0),
                 end_pos=(x, config.arm_base_size),
-                width=1,
+                width=5,
             )
         # Draw horizontal lines
-        for y in (0, config.arm_base_size):
+        for y in (0, config.arm_base_size - 1):
             pygame.draw.line(
                 surface=self.image,
                 color="black",
                 start_pos=(0, y),
                 end_pos=(config.arm_base_size, y),
-                width=1,
+                width=5,
             )
 
         # Define initial location
@@ -106,47 +106,19 @@ class ArmBase(BoardElement):
 class ArmClaw(BoardElement):
     """Claw of the agent or robot arm"""
 
-    def __init__(self, coords: Vector2, config: Config, is_agebt: bool):
+    def __init__(self, coords: Vector2, config: Config):
         super().__init__(
             coords=coords,
             size=(config.arm_claw_size, config.arm_claw_size),
             config=config,
         )
 
-        if self.is_agent:
-            # Draw agent claw arm as a "+" sign.
-            # Draw vertical line
-            pygame.draw.line(
-                surface=self.image,
-                color="black",
-                start_pos=(config.arm_claw_size // 2, 0),
-                end_pos=(config.arm_claw_size // 2, config.arm_claw_size),
-                width=3,
-            )
-            # Draw horizontal line
-            pygame.draw.line(
-                surface=self.image,
-                color="black",
-                start_pos=(0, config.arm_claw_size // 2),
-                end_pos=(config.arm_claw_size, config.arm_claw_size // 2),
-                width=3,
-            )
-        else:
-            # Draw base of robot arm as a "x" sign
-            pygame.draw.line(
-                surface=self.image,
-                color="black",
-                start_pos=(0, 0),
-                end_pos=(config.arm_claw_size, config.arm_claw_size),
-                width=3,
-            )
-            pygame.draw.line(
-                surface=self.image,
-                color="black",
-                start_pos=(0, config.arm_claw_size),
-                end_pos=(config.arm_claw_size, 0),
-                width=3,
-            )
+        pygame.draw.circle(
+            surface=self.image,
+            color=self.color,
+            center=(config.arm_claw_size // 2, config.arm_claw_size // 2),
+            radius=config.arm_claw_size // 2,
+        )
 
         # Define initial location
         self.update()
@@ -177,11 +149,11 @@ class Board:
     ) -> None:
         """Populate the board"""
 
-        # Put base of agent arm at the center of the bottom row
+        # Put base of robot arm at the center of the bottom row
         robot_arm_base = ArmBase(
             coords=Vector2(
                 x=self.config.board_width // 2,
-                y=self.config.arm_base_size,
+                y=self.config.arm_base_size // 2,
             ),
             config=self.config,
         )
@@ -191,7 +163,7 @@ class Board:
         agent_arm_base = ArmBase(
             coords=Vector2(
                 x=self.config.board_width // 2,
-                y=self.config.board_height - self.config.arm_base_size,
+                y=self.config.board_height - self.config.arm_base_size // 2,
             ),
             config=self.config,
         )

@@ -8,48 +8,44 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from pygame.math import Vector2
-from pygame.sprite import Group, GroupSingle
+from pygame.sprite import GroupSingle
 from pygame.surface import Surface
 
-from .board import ArmBase, Color, Object, Shape
+from .board import ArmBase, ArmClaw, Color, Object, Shape
 from .config import Config
 
 if TYPE_CHECKING:
     # Only import the below statements during type checking to avoid a circular reference
     # https://stackoverflow.com/a/67673741
-    from .grid import Grid
+    from .board import Board
 
 
 class Arm:
-    def __init__(self, grid: Grid, config: Config, is_agent: bool):
-        self.grid = grid
+    def __init__(self, board: Board, config: Config, is_agent: bool):
+        self.board = board
         self.config = config
-        self.is_agent = is_agent
 
-        self.starting_location: Vector2 = None
-        self._claw: GroupSingle[ArmBase] = GroupSingle()
-        self.parts: Group[ArmBase] = Group()
-        self.previous_claw_locations: list[Vector2] = []
+        self.starting_coords: Vector2 = None
+        self._claw: GroupSingle[ArmClaw] = GroupSingle()
+        self._base: GroupSingle[ArmBase] = GroupSingle()
 
     @property
-    def claw(self) -> ArmBase:
+    def claw(self) -> ArmClaw:
         """Return the arm claw"""
 
         return self._claw.sprite
 
-    def reset(self, starting_location: Vector2):
-        """Reset the arm to starting position"""
+    def reset(self, starting_coords: Vector2):
+        """Reset the arm to starting location"""
 
-        self.starting_location = starting_location
-        self._claw.add(
-            ArmBase(location=starting_location, config=Config, is_agent=self.is_agent)
-        )
-        self.parts.empty()
+        self.starting_coords = starting_coords
+        self._claw.add(ArmClaw(location=starting_coords, config=Config))
+        self._base.add(ArmBase(location=starting_coords, config=Config))
 
     def move(self, direction: tuple[int, int]) -> tuple[Color, Shape] | None:
         """Move the arm in a given direction"""
 
-        # Clip the new location to grid dimensions
+        # Clip the new location to board dimensions
         new_claw_location = Vector2(
             x=np.clip(
                 a=self.claw.location.x + direction[0],
@@ -69,7 +65,7 @@ class Arm:
         """Move the arm claw to a given location"""
 
         if location != self.claw.location:
-            cell_at_new_location = self.grid.get_element(location=location)
+            cell_at_new_location = self.board.get_element(location=location)
 
             if cell_at_new_location is None:
                 # New location is empty
@@ -108,7 +104,7 @@ class Arm:
         self.parts.draw(surface=surface)
 
     def get_part(self, location: Vector2) -> ArmBase | None:
-        """Check if a grid location is occupied by a part of the arm"""
+        """Check if a board location is occupied by a part of the arm"""
 
         for arm_part in self.parts:
             if arm_part.location == location:
@@ -152,14 +148,14 @@ class Arm:
 
         if self.claw.picked_object is not None:
             # If the arm is retracted to its starting position, drop the picked object
-            if location == self.starting_location:
+            if location == self.starting_coords:
                 dropped_object_props = (
                     self.claw.picked_object.color,
                     self.claw.picked_object.shape,
                 )
 
                 # Drop the picked object
-                self.grid.objects.remove(self.claw.picked_object)
+                self.board.objects.remove(self.claw.picked_object)
                 self.claw.picked_object = None
 
                 # Return it for reward computation

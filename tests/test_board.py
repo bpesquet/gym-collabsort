@@ -22,5 +22,5 @@ def test_draw() -> None:
 
     frame = board.get_frame()
     assert frame.ndim == 3
-    assert frame.shape[0] == board.config.board_width
-    assert frame.shape[1] == board.config.board_height
+    assert frame.shape[0] == board.config.board_height
+    assert frame.shape[1] == board.config.board_width

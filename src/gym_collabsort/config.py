@@ -50,7 +50,7 @@ class Config:
     background_color: str = "white"
 
     # Number of pickable objects on the grid
-    n_objects: int = 20
+    n_objects: int = 15
 
     # Possible colors for grid objects
     object_colors: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
