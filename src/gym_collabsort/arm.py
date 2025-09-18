@@ -11,7 +11,7 @@ from pygame.math import Vector2
 from pygame.sprite import Group, GroupSingle
 from pygame.surface import Surface
 
-from .cell import ArmPart, Color, Object, Shape
+from .board import ArmBase, Color, Object, Shape
 from .config import Config
 
 if TYPE_CHECKING:
@@ -27,12 +27,12 @@ class Arm:
         self.is_agent = is_agent
 
         self.starting_location: Vector2 = None
-        self._claw: GroupSingle[ArmPart] = GroupSingle()
-        self.parts: Group[ArmPart] = Group()
+        self._claw: GroupSingle[ArmBase] = GroupSingle()
+        self.parts: Group[ArmBase] = Group()
         self.previous_claw_locations: list[Vector2] = []
 
     @property
-    def claw(self) -> ArmPart:
+    def claw(self) -> ArmBase:
         """Return the arm claw"""
 
         return self._claw.sprite
@@ -42,7 +42,7 @@ class Arm:
 
         self.starting_location = starting_location
         self._claw.add(
-            ArmPart(location=starting_location, config=Config, is_agent=self.is_agent)
+            ArmBase(location=starting_location, config=Config, is_agent=self.is_agent)
         )
         self.parts.empty()
 
@@ -83,10 +83,10 @@ class Arm:
                 # move claw to pick the object
                 self._extend(location=location, picked_object=cell_at_new_location)
 
-            elif isinstance(cell_at_new_location, ArmPart):
+            elif isinstance(cell_at_new_location, ArmBase):
                 # New location contains an arm part (agent or robot)
 
-                arm_part: ArmPart = cell_at_new_location
+                arm_part: ArmBase = cell_at_new_location
                 if (
                     arm_part.is_agent == self.is_agent
                     and location == self.previous_claw_locations[-1]
@@ -107,7 +107,7 @@ class Arm:
         self.parts.update()
         self.parts.draw(surface=surface)
 
-    def get_part(self, location: Vector2) -> ArmPart | None:
+    def get_part(self, location: Vector2) -> ArmBase | None:
         """Check if a grid location is occupied by a part of the arm"""
 
         for arm_part in self.parts:
@@ -124,7 +124,7 @@ class Arm:
 
         # Add a part at current location of claw
         self.parts.add(
-            ArmPart(
+            ArmBase(
                 location=self.claw.location,
                 config=self.config,
                 is_agent=self.is_agent,

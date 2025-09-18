@@ -8,7 +8,7 @@ from pygame.math import Vector2
 from pygame.sprite import Group
 
 from .arm import Arm
-from .cell import Color, GridElement, Object, Shape
+from .board import BoardElement, Color, Object, Shape
 from .config import Config
 
 
@@ -36,8 +36,8 @@ class Grid:
     def window_size(self) -> tuple[int, int]:
         """Get the size of the grid window"""
 
-        window_width = self.config.n_cols * self.config.cell_size
-        window_height = self.config.n_rows * self.config.cell_size
+        window_width = self.config.n_cols * self.config.object_size
+        window_height = self.config.n_rows * self.config.object_size
         return (window_width, window_height)
 
     def populate(
@@ -90,7 +90,7 @@ class Grid:
                 )
                 remaining_objects -= 1
 
-    def get_element(self, location: Vector2) -> GridElement | None:
+    def get_element(self, location: Vector2) -> BoardElement | None:
         # Check for existing objects
         for obj in self.objects:
             if obj.location == location:
@@ -143,7 +143,7 @@ class Grid:
         # Draw separation lines between grid cells.
         # Draw vertical lines
         for x in range(self.config.n_cols + 1):
-            x_line = self.config.cell_size * x
+            x_line = self.config.object_size * x
             pygame.draw.line(
                 surface=self.canvas,
                 color="black",
@@ -152,7 +152,7 @@ class Grid:
             )
         # Draw horizontal lines
         for y in range(self.config.n_rows + 1):
-            y_line = self.config.cell_size * y
+            y_line = self.config.object_size * y
             pygame.draw.line(
                 surface=self.canvas,
                 color="black",

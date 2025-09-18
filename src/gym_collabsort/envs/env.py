@@ -9,21 +9,21 @@ import gymnasium as gym
 import numpy as np
 import pygame
 
-from gym_collabsort.cell import Color, Object, Shape
+from gym_collabsort.board import Board, Object, Shape
 from gym_collabsort.config import Config
-from gym_collabsort.grid import Grid
-
-from .robot import Robot
 
 
 class Action(Enum):
     """Possible actions for an agent"""
 
+    # Do nothing
     WAIT = 0
-    RIGHT = 1
-    UP = 2
-    LEFT = 3
-    DOWN = 4
+    # Aim arm towards specific coordinates
+    AIM = 1
+    # Extend arm
+    EXTEND = 2
+    # Retract arm
+    RETRACT = 3
 
 
 class RenderMode(StrEnum):
@@ -40,7 +40,6 @@ class CollabSortEnv(gym.Env):
     def __init__(
         self,
         render_mode: RenderMode = RenderMode.NONE,
-        n_agents: int = 2,
         config: Config | None = None,
     ):
         """Initialize the environment"""
@@ -50,7 +49,6 @@ class CollabSortEnv(gym.Env):
             config = Config()
 
         self.render_mode = render_mode
-        self.n_agents = n_agents
         self.config = config
 
         """
@@ -63,34 +61,25 @@ class CollabSortEnv(gym.Env):
         self.window = None
         self.clock = None
 
-        self.grid = Grid(config=self.config)
-        self.robot = Robot(grid=self.grid, config=self.config)
+        self.board = Board(config=self.config)
 
-        """
-        The following dictionary maps abstract actions from `self.action_space` to
-        the direction we will walk in if that action is taken.
-        i.e. 0 corresponds to "right", 1 to "up" etc.
-        """
-        self._action_to_direction = {
-            Action.WAIT.value: (0, 0),
-            Action.RIGHT.value: (1, 0),
-            Action.UP.value: (0, 1),
-            Action.LEFT.value: (-1, 0),
-            Action.DOWN.value: (0, -1),
-        }
-
-        # Define possible actions for the agent
-        self.action_space = gym.spaces.Discrete(n=len(Action))
+        # Define action format
+        self.action_space = gym.spaces.Dict(
+            {
+                "action": gym.spaces.Discrete(n=len(Action)),
+                "target_coords": self._get_coords_space(),
+            }
+        )
 
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
             {
-                "self_location": self._create_location_space(),
+                "coords": self._get_coords_space(),
                 "objects": gym.spaces.Tuple(
                     tuple(
                         gym.spaces.Dict(
                             {
-                                "location": self._create_location_space(),
+                                "coords": self._get_coords_space(),
                                 # max_length is the maximum number of characters in a color
                                 "color": gym.spaces.Text(max_length=10),
                                 "shape": gym.spaces.Discrete(n=len(Shape)),
@@ -102,16 +91,16 @@ class CollabSortEnv(gym.Env):
             }
         )
 
-    def _create_location_space(self) -> gym.spaces.Space:
-        """Helper method to create a Box space for the location of an element as (row,col) coordinates"""
+    def _get_coords_space(self) -> gym.spaces.Space:
+        """Helper method to create a Box space for the coordinates of a board element"""
 
         return gym.spaces.Box(
             low=np.array([0, 0]),
-            # Maximum values are bounded by grid dimensions
+            # Maximum values are bounded by board dimensions
             high=np.array(
                 [
-                    self.config.n_rows - 1,
-                    self.config.n_cols - 1,
+                    self.config.board_width,
+                    self.config.board_height,
                 ]
             ),
             dtype=int,
@@ -123,7 +112,7 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
-        self.grid.populate(rng=self.np_random)
+        self.board.populate(rng=self.np_random)
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
@@ -134,11 +123,11 @@ class CollabSortEnv(gym.Env):
         """Return an observation given to the agent"""
 
         # An observation is a dictionary containing:
-        # - the location of agent arm clamp
+        # - the coordinates of agent arm clamp
         # - properties for all objects
-        objects = [self._get_object_props(object=obj) for obj in self.grid.objects]
+        objects = [self._get_object_props(object=obj) for obj in self.board.objects]
         return {
-            "clamp_location": self.grid.agent_arm.claw.location,
+            "coords": None,  # TODO
             "objects": objects,
         }
 
@@ -146,31 +135,19 @@ class CollabSortEnv(gym.Env):
         """Return properties for a aspecific object"""
 
         return {
-            "location": object.location,
+            "coords": object.coords,
             "color": object.color,
             "shape": object.shape,
         }
 
     def step(self, action: int) -> tuple[dict, int, bool, bool, dict]:
-        # Move robot
-        self.grid.robot_arm.move(direction=self.robot.choose_direction())
-
-        # Map the action to the direction we walk in
-        agent_direction = self._action_to_direction[action]
-
-        # Try to move agent and compute associated reward
-        reward = -0.1
-        dropped_object_props = self.grid.agent_arm.move(direction=agent_direction)
-        if dropped_object_props is not None:
-            if dropped_object_props.color == Color.BLUE:
-                reward = 2
-            else:
-                reward = -2
+        # TODO
+        reward = 0
 
         observation = self._get_obs()
 
         # Episode is terminated when all objects have been picked up
-        terminated = len(self.grid.objects) == 0
+        terminated = len(self.board.objects) == 0
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
@@ -185,12 +162,12 @@ class CollabSortEnv(gym.Env):
         if self.window is None and self.render_mode == RenderMode.HUMAN:
             pygame.init()
             pygame.display.init()
-            self.window = pygame.display.set_mode(size=self.grid.window_size)
+            self.window = pygame.display.set_mode(size=self.config.window_size)
 
         if self.clock is None and self.render_mode == RenderMode.HUMAN:
             self.clock = pygame.time.Clock()
 
-        canvas = self.grid.draw()
+        canvas = self.board.draw()
 
         if self.render_mode == RenderMode.HUMAN:
             # The following line copies our drawings from canvas to the visible window
@@ -203,7 +180,7 @@ class CollabSortEnv(gym.Env):
             self.clock.tick(self.config.render_fps)
 
         else:  # rgb_array
-            return self.grid.get_frame()
+            return self.board.get_frame()
 
     def close(self) -> None:
         if self.window is not None:

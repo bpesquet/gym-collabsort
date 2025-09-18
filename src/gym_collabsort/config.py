@@ -29,12 +29,22 @@ class Config:
     # Frames Per Second for env rendering
     render_fps: int = 30
 
-    # Grid shape
-    n_cols: int = 20
-    n_rows: int = 10
+    # Board dimensions
+    board_height: int = 500
+    board_width: int = 800
 
-    # Size in pixels of a (square) grid cell
-    cell_size: int = 50
+    @property
+    def window_size(self) -> tuple[int, int]:
+        return (self.board_width, self.board_height)
+
+    # Size (height & width) of an object in pixels
+    object_size: int = 50
+
+    # Size (height & width) of the base of agent and robot arms in pixels
+    arm_base_size: int = object_size
+
+    # Size (height & width) of the agent and robot claws in pixels
+    arm_claw_size: int = arm_base_size / 2
 
     # Background color of the grid
     background_color: str = "white"
