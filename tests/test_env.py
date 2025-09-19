@@ -17,7 +17,7 @@ def test_random_actions() -> None:
     env.reset()
 
     ep_reward = 0
-    for _ in range(75):
+    for _ in range(1000):
         _, reward, _, _, _ = env.step(env.action_space.sample())
 
         ep_reward += reward

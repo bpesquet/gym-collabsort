@@ -29,8 +29,8 @@ class Grid:
         self.objects: Group[Object] = Group()
 
         # Create agent and robot arms as empty groups of parts
-        self.agent_arm: Arm = Arm(grid=self, config=self.config, is_agent=True)
-        self.robot_arm: Arm = Arm(grid=self, config=self.config, is_agent=False)
+        self.agent_arm: Arm = Arm(grid=self, config=self.config)
+        self.robot_arm: Arm = Arm(grid=self, config=self.config)
 
     @property
     def window_size(self) -> tuple[int, int]:

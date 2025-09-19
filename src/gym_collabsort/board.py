@@ -7,27 +7,11 @@ import pygame
 from pygame.math import Vector2
 from pygame.sprite import Group, Sprite, spritecollide
 
+from gym_collabsort.arm import Arm
 from gym_collabsort.config import Color, Config, Shape
 
 
-class BoardElement(Sprite):
-    """Base class for all board elements"""
-
-    def __init__(self, coords: Vector2, size: tuple[int, int], config: Config) -> None:
-        super().__init__()
-
-        self.coords = coords
-
-        # Init element image
-        self.image = pygame.Surface(size=size)
-        self.image.fill(color=config.background_color)
-
-    def update(self) -> None:
-        # Move the element, centering it around its coordinates
-        self.rect = self.image.get_rect(center=self.coords)
-
-
-class Object(BoardElement):
+class Object(Sprite):
     """A pickable object"""
 
     def __init__(
@@ -37,9 +21,11 @@ class Object(BoardElement):
         color: Color,
         shape: Shape,
     ) -> None:
-        super().__init__(
-            coords=coords, size=(config.object_size, config.object_size), config=config
-        )
+        super().__init__()
+
+        # Init object image
+        self.image = pygame.Surface(size=(config.object_size, config.object_size))
+        self.image.fill(color=config.background_color)
 
         self.color = color
         self.shape = shape
@@ -66,62 +52,7 @@ class Object(BoardElement):
             )
 
         # Define initial location
-        self.update()
-
-
-class ArmBase(BoardElement):
-    """Base of the agent or robot arm"""
-
-    def __init__(self, coords: Vector2, config: Config) -> None:
-        super().__init__(
-            coords=coords,
-            size=(config.arm_base_size, config.arm_base_size),
-            config=config,
-        )
-
-        # Draw an empty square box
-        # Draw vertical lines
-        for x in (0, config.arm_base_size - 1):
-            pygame.draw.line(
-                surface=self.image,
-                color="black",
-                start_pos=(x, 0),
-                end_pos=(x, config.arm_base_size),
-                width=5,
-            )
-        # Draw horizontal lines
-        for y in (0, config.arm_base_size - 1):
-            pygame.draw.line(
-                surface=self.image,
-                color="black",
-                start_pos=(0, y),
-                end_pos=(config.arm_base_size, y),
-                width=5,
-            )
-
-        # Define initial location
-        self.update()
-
-
-class ArmClaw(BoardElement):
-    """Claw of the agent or robot arm"""
-
-    def __init__(self, coords: Vector2, config: Config):
-        super().__init__(
-            coords=coords,
-            size=(config.arm_claw_size, config.arm_claw_size),
-            config=config,
-        )
-
-        pygame.draw.circle(
-            surface=self.image,
-            color=self.color,
-            center=(config.arm_claw_size // 2, config.arm_claw_size // 2),
-            radius=config.arm_claw_size // 2,
-        )
-
-        # Define initial location
-        self.update()
+        self.rect = self.image.get_rect(center=coords)
 
 
 class Board:
@@ -140,8 +71,8 @@ class Board:
         # Create an empty group for objects
         self.objects: Group[Object] = Group()
 
-        # Create an empty group for agent and robot arm bases
-        self.arm_bases: Group[ArmBase] = Group()
+        self.agent_arm = Arm(board=self, config=config)
+        self.robot_arm = Arm(board=self, config=config)
 
     def populate(
         self,
@@ -149,25 +80,21 @@ class Board:
     ) -> None:
         """Populate the board"""
 
-        # Put base of robot arm at the center of the bottom row
-        robot_arm_base = ArmBase(
+        # Put robot arm at the center of the top row
+        self.robot_arm.reset(
             coords=Vector2(
                 x=self.config.board_width // 2,
                 y=self.config.arm_base_size // 2,
-            ),
-            config=self.config,
+            )
         )
-        self.arm_bases.add(robot_arm_base)
 
-        # Put base of agent arm at the center of the bottom row
-        agent_arm_base = ArmBase(
+        # Put agent arm at the center of the bottom row
+        self.agent_arm.reset(
             coords=Vector2(
                 x=self.config.board_width // 2,
                 y=self.config.board_height - self.config.arm_base_size // 2,
-            ),
-            config=self.config,
+            )
         )
-        self.arm_bases.add(agent_arm_base)
 
         # Add objects to the board in an available location
         self.objects.empty()
@@ -194,9 +121,11 @@ class Board:
                 shape=obj_shape,
                 config=self.config,
             )
-            if not spritecollide(
-                sprite=new_obj, group=self.objects, dokill=False
-            ) and not spritecollide(sprite=new_obj, group=self.arm_bases, dokill=False):
+            if (
+                not self.agent_arm.collide(sprite=new_obj)
+                and not self.robot_arm.collide(sprite=new_obj)
+                and not spritecollide(sprite=new_obj, group=self.objects, dokill=False)
+            ):
                 # Add new object if it doesn't collide with anything already present on the board
                 self.objects.add(new_obj)
                 remaining_objects -= 1
@@ -211,8 +140,9 @@ class Board:
         self.objects.update()
         self.objects.draw(surface=self.canvas)
 
-        # Draw (static) arm bases
-        self.arm_bases.draw(surface=self.canvas)
+        # Draw arms
+        self.agent_arm.draw(surface=self.canvas)
+        self.robot_arm.draw(surface=self.canvas)
 
         return self.canvas
 

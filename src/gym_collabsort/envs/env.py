@@ -67,7 +67,7 @@ class CollabSortEnv(gym.Env):
         self.action_space = gym.spaces.Dict(
             {
                 "action": gym.spaces.Discrete(n=len(Action)),
-                "target_coords": self._get_coords_space(),
+                "target": self._get_coords_space(),
             }
         )
 
@@ -135,16 +135,17 @@ class CollabSortEnv(gym.Env):
         """Return properties for a aspecific object"""
 
         return {
-            "coords": object.coords,
+            "coords": object.rect.center,
             "color": object.color,
             "shape": object.shape,
         }
 
     def step(self, action: dict) -> tuple[dict, int, bool, bool, dict]:
         if action["action"] == Action.AIM.value:
-            pass
-        elif action == Action.EXTEND.value:
-            pass
+            self.board.agent_arm.action_aim(target_array=action["target"])
+
+        elif action["action"] == Action.EXTEND.value:
+            self.board.agent_arm.action_extend()
 
         reward = 0
 

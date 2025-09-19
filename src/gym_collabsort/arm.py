@@ -7,11 +7,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pygame
 from pygame.math import Vector2
-from pygame.sprite import GroupSingle
-from pygame.surface import Surface
+from pygame.sprite import GroupSingle, Sprite, spritecollide
 
-from .board import ArmBase, ArmClaw, Color, Object, Shape
 from .config import Config
 
 if TYPE_CHECKING:
@@ -19,149 +18,148 @@ if TYPE_CHECKING:
     # https://stackoverflow.com/a/67673741
     from .board import Board
 
+# Drawing constants
+ARM_BASE_LINE_WIDTH: int = 5
+ARM_LINE_WIDTH: int = 7
+
+
+class ArmBase(Sprite):
+    """Base of the agent or robot arm"""
+
+    def __init__(self, coords: Vector2, config: Config) -> None:
+        super().__init__()
+
+        # Init image
+        self.image = pygame.Surface(size=(config.arm_base_size, config.arm_base_size))
+        self.image.fill(color=config.background_color)
+
+        # Draw an empty square box
+        # Draw vertical lines
+        for x in (0, config.arm_base_size - 1):
+            pygame.draw.line(
+                surface=self.image,
+                color="black",
+                start_pos=(x, 0),
+                end_pos=(x, config.arm_base_size),
+                width=ARM_BASE_LINE_WIDTH,
+            )
+        # Draw horizontal lines
+        for y in (0, config.arm_base_size - 1):
+            pygame.draw.line(
+                surface=self.image,
+                color="black",
+                start_pos=(0, y),
+                end_pos=(config.arm_base_size, y),
+                width=ARM_BASE_LINE_WIDTH,
+            )
+
+        # Define initial location
+        self.rect = self.image.get_rect(center=coords)
+
+
+class ArmClaw(Sprite):
+    """Claw of the agent or robot arm"""
+
+    def __init__(self, coords: Vector2, config: Config):
+        super().__init__()
+
+        # Init image
+        self.image = pygame.Surface(size=(config.arm_claw_size, config.arm_claw_size))
+        self.image.fill(color=config.background_color)
+
+        # Make the rect pixels around the claw shape transparent
+        self.image.set_colorkey(config.background_color)
+
+        pygame.draw.circle(
+            surface=self.image,
+            color="black",
+            center=(config.arm_claw_size // 2, config.arm_claw_size // 2),
+            radius=config.arm_claw_size // 2,
+        )
+
+        # Define initial location
+        self.rect = self.image.get_rect(center=coords)
+
+    def move_towards(self, target_coords: Vector2) -> None:
+        coords = Vector2(self.rect.center)
+        coords.move_towards_ip(target_coords, 2)
+        self.rect = self.image.get_rect(center=coords)
+
 
 class Arm:
-    def __init__(self, board: Board, config: Config, is_agent: bool):
+    def __init__(self, board: Board, config: Config):
         self.board = board
         self.config = config
 
         self.starting_coords: Vector2 = None
-        self._claw: GroupSingle[ArmClaw] = GroupSingle()
         self._base: GroupSingle[ArmBase] = GroupSingle()
+        self._claw: GroupSingle[ArmClaw] = GroupSingle()
+
+        self.target_coords: Vector2 = None
+
+    @property
+    def base(self) -> ArmBase:
+        return self._base.sprite
 
     @property
     def claw(self) -> ArmClaw:
-        """Return the arm claw"""
-
         return self._claw.sprite
 
-    def reset(self, starting_coords: Vector2):
+    def reset(self, coords: Vector2) -> None:
         """Reset the arm to starting location"""
 
-        self.starting_coords = starting_coords
-        self._claw.add(ArmClaw(location=starting_coords, config=Config))
-        self._base.add(ArmBase(location=starting_coords, config=Config))
+        self.starting_coords = coords
 
-    def move(self, direction: tuple[int, int]) -> tuple[Color, Shape] | None:
-        """Move the arm in a given direction"""
-
-        # Clip the new location to board dimensions
-        new_claw_location = Vector2(
-            x=np.clip(
-                a=self.claw.location.x + direction[0],
-                a_min=0,
-                a_max=self.config.n_cols - 1,
-            ),
-            y=np.clip(
-                a=self.claw.location.y + direction[1],
-                a_min=0,
-                a_max=self.config.n_rows - 1,
-            ),
-        )
-
-        return self._move_claw(location=new_claw_location)
-
-    def _move_claw(self, location: Vector2) -> tuple[Color, Shape] | None:
-        """Move the arm claw to a given location"""
-
-        if location != self.claw.location:
-            cell_at_new_location = self.board.get_element(location=location)
-
-            if cell_at_new_location is None:
-                # New location is empty
-                self._extend(location=location)
-
-            elif (
-                isinstance(cell_at_new_location, Object)
-                and self.claw.picked_object is None
-            ):
-                # New location contains an object and arm claw is empty:
-                # move claw to pick the object
-                self._extend(location=location, picked_object=cell_at_new_location)
-
-            elif isinstance(cell_at_new_location, ArmBase):
-                # New location contains an arm part (agent or robot)
-
-                arm_part: ArmBase = cell_at_new_location
-                if (
-                    arm_part.is_agent == self.is_agent
-                    and location == self.previous_claw_locations[-1]
-                ):
-                    # Part belong to this arm: retract the arm to new location
-                    return self._retract(location=location)
-
-        return None
-
-    def draw(self, surface: Surface) -> None:
-        """Draw the arm to a surface"""
-
-        # Draw the claw
-        self._claw.update()
-        self._claw.draw(surface=surface)
-
-        # Draw the arm parts
-        self.parts.update()
-        self.parts.draw(surface=surface)
-
-    def get_part(self, location: Vector2) -> ArmBase | None:
-        """Check if a board location is occupied by a part of the arm"""
-
-        for arm_part in self.parts:
-            if arm_part.location == location:
-                return arm_part
-
-        if self.claw.location == location:
-            return self.claw
-
-        return None
-
-    def _extend(self, location: Vector2, picked_object: Object | None = None) -> None:
-        """Extend the arm to a new location"""
-
-        # Add a part at current location of claw
-        self.parts.add(
+        # Put robot arm base and claw at the center of the bottom row
+        self._base.add(
             ArmBase(
-                location=self.claw.location,
+                coords=coords,
                 config=self.config,
-                is_agent=self.is_agent,
+            )
+        )
+        self._claw.add(
+            ArmClaw(
+                coords=coords,
+                config=self.config,
             )
         )
 
-        # Move claw to new location
-        self.previous_claw_locations.append(self.claw.location.copy())
-        self.claw.location = location
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the arm on a surface"""
 
-        if picked_object is not None:
-            self.claw.picked_object = picked_object
-            # Move picked object alongside arm claw
-            self.claw.picked_object.location = location
+        # Draw arm base and claw
+        self._base.draw(surface=surface)
+        self._claw.draw(surface=surface)
 
-    def _retract(self, location: Vector2) -> tuple[Color, Shape] | None:
-        """Retract the arm to a new location"""
+        # Draw line between arm base and claw
+        pygame.draw.line(
+            surface=surface,
+            color="black",
+            start_pos=self.base.rect.center,
+            end_pos=self.claw.rect.center,
+            width=ARM_LINE_WIDTH,
+        )
 
-        # Remove the existing part at new location
-        self.get_part(location=location).kill()
+    def collide(self, sprite: Sprite) -> bool:
+        """Check if a sprite collides with the arm"""
 
-        # Move claw to new location
-        self.previous_claw_locations.pop()
-        self.claw.location = location
+        return spritecollide(
+            sprite=sprite, group=self._base, dokill=False
+        ) or spritecollide(sprite=sprite, group=self._claw, dokill=False)
 
-        if self.claw.picked_object is not None:
-            # If the arm is retracted to its starting position, drop the picked object
-            if location == self.starting_coords:
-                dropped_object_props = (
-                    self.claw.picked_object.color,
-                    self.claw.picked_object.shape,
-                )
+    def action_aim(self, target_array: np.ndarray) -> None:
+        """Aim arm towards specific coordinates"""
 
-                # Drop the picked object
-                self.board.objects.remove(self.claw.picked_object)
-                self.claw.picked_object = None
+        target_coords = Vector2(target_array[0], target_array[1])
+        if self.target_coords is not None:
+            print(
+                f"Warning: overriding arm target, was {self.target_coords}, now {target_coords}"
+            )
 
-                # Return it for reward computation
-                return dropped_object_props
-            else:
-                # Otherwise, move the picked object alongside arm claw
-                self.claw.picked_object.location = location
+        self.target_coords = target_coords
 
-        return None
+    def action_extend(self) -> None:
+        if self.target_coords is None:
+            print("Error: trying to extend arm without anu target")
+        else:
+            self.claw.move_towards(target_coords=self.target_coords)
