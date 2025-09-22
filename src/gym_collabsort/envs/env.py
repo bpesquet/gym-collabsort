@@ -13,7 +13,6 @@ from pygame.math import Vector2
 from gym_collabsort.board import Arm, Board, Color, Object, ObjectProps, Shape
 from gym_collabsort.config import Config
 
-from .action import Action
 from .robot import Robot
 
 
@@ -56,12 +55,7 @@ class CollabSortEnv(gym.Env):
         self.robot = Robot(arm=self.board.robot_arm, config=config)
 
         # Define action format
-        self.action_space = gym.spaces.Dict(
-            {
-                "action_value": gym.spaces.Discrete(n=len(Action)),
-                "target": self._get_coords_space(),
-            }
-        )
+        self.action_space = self._get_coords_space()
 
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
@@ -132,7 +126,7 @@ class CollabSortEnv(gym.Env):
             "shape": object.shape,
         }
 
-    def step(self, action: dict) -> tuple[dict, int, bool, bool, dict]:
+    def step(self, action: tuple[int, int]) -> tuple[dict, int, bool, bool, dict]:
         reward = -0.1
 
         # Handle robot action
@@ -163,16 +157,12 @@ class CollabSortEnv(gym.Env):
         return observation, reward, terminated, False, {}
 
     def _handle_action(
-        self, arm: Arm, action: dict, other_arm: Arm
+        self, arm: Arm, action: tuple[int, int], other_arm: Arm
     ) -> ObjectProps | None:
         """Handle an action for agent or robot arm"""
 
-        action_value: int = action["action_value"]
-        if action_value == Action.MOVE.value:
-            target_coords = Vector2(action["target"][0], action["target"][1])
-            return arm.action_move(target_coords=target_coords, other_arm=other_arm)
-        elif action_value != Action.WAIT.value:
-            print(f"Error: unknown action value {action_value}")
+        target_coords = Vector2(action[0], action[1])
+        return arm.action_move(target_coords=target_coords, other_arm=other_arm)
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:

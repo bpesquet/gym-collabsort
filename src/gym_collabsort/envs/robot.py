@@ -4,7 +4,6 @@ Implementation of robot policy.
 
 from ..arm import Arm
 from ..config import Config
-from .action import Action
 
 
 class Robot:
@@ -15,8 +14,8 @@ class Robot:
         # Coordinates of current target
         self.target: tuple[int, int] = None
 
-    def choose_action(self) -> dict:
-        """Choose action"""
+    def choose_action(self) -> tuple[int, int]:
+        """Return the coordinates of the chosen target"""
 
         if self.arm.is_retracted():
             # Reset target when arm is fully retracted
@@ -44,7 +43,7 @@ class Robot:
 
         if self.target is not None:
             # Move arm towards target
-            return {"action_value": Action.MOVE.value, "target": self.target}
+            return self.target
         else:
             # No possible target => no movement
-            return {"action_value": Action.WAIT.value, "target": None}
+            return self.arm.claw.rect.center
