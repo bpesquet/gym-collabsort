@@ -148,7 +148,7 @@ class Board:
                 self.objects.add(new_obj)
                 remaining_objects -= 1
 
-    def get_object_at(self, coords: Vector2) -> Object | None:
+    def get_object_at(self, coords: tuple[int, int]) -> Object | None:
         """Return the object at a given location, if any"""
 
         for obj in self.objects:
@@ -158,13 +158,21 @@ class Board:
     def get_compatible_objects(
         self, colors: tuple[Color], shapes: tuple[Shape]
     ) -> list[Object]:
-        """Get the ordered list of board objects with compatible colors and shapes"""
+        """Get the ordered list of board objects with listed colors and shapes"""
 
         shape_compatible_objects: list[Object] = []
         compatible_objects: list[Object] = []
 
+        # Exclude already picked objects
+        available_objects = [
+            obj
+            for obj in self.objects
+            if obj != self.agent_arm.picked_object
+            and obj != self.robot_arm.picked_object
+        ]
+
         for shape in shapes:
-            for obj in self.objects:
+            for obj in available_objects:
                 if obj.shape == shape:
                     shape_compatible_objects.append(obj)
 

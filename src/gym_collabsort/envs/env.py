@@ -8,6 +8,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 import pygame
+from pygame.math import Vector2
 
 from gym_collabsort.board import Arm, Board, Color, Object, ObjectProps, Shape
 from gym_collabsort.config import Config
@@ -167,10 +168,9 @@ class CollabSortEnv(gym.Env):
         """Handle an action for agent or robot arm"""
 
         action_value: int = action["action_value"]
-        if action_value == Action.AIM.value:
-            arm.action_aim(target_array=action["target"])
-        elif action_value == Action.MOVE.value:
-            return arm.action_move(other_arm=other_arm)
+        if action_value == Action.MOVE.value:
+            target_coords = Vector2(action["target"][0], action["target"][1])
+            return arm.action_move(target_coords=target_coords, other_arm=other_arm)
         elif action_value != Action.WAIT.value:
             print(f"Error: unknown action value {action_value}")
 

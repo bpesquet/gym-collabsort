@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pygame
 from pygame.math import Vector2
 from pygame.sprite import GroupSingle, Sprite, spritecollide
@@ -95,7 +94,6 @@ class Arm:
         self.board = board
         self.config = config
 
-        self.target_coords: Vector2 = None
         self.picked_object: Object = None
         self.collision_penalty: bool = False
 
@@ -139,24 +137,13 @@ class Arm:
 
         return collide_claw or collide_base or collide_line
 
-    def action_aim(self, target_array: np.ndarray) -> None:
-        """Aim arm towards specific coordinates"""
+    def action_move(self, target_coords: Vector2, other_arm: Arm) -> ObjectProps | None:
+        """Move arm claw towards target coordinates"""
 
-        target_coords = Vector2(target_array[0], target_array[1])
-        if self.target_coords is not None:
-            print(
-                f"Warning: overriding arm target, was {self.target_coords}, now {target_coords}"
-            )
-
-        self.target_coords = target_coords
-
-    def action_move(self, other_arm: Arm) -> ObjectProps | None:
-        """Move arm claw towards target"""
-
-        if self.target_coords is not None:
-            # Move claw towards target
+        if target_coords != self.claw.rect.center:
+            # Move claw towards target if different from current location
             self.claw.move_towards(
-                target_coords=self.target_coords, speed_penalty=self.collision_penalty
+                target_coords=target_coords, speed_penalty=self.collision_penalty
             )
 
             if self.picked_object is not None:
@@ -166,9 +153,6 @@ class Arm:
                 )
 
             if self.collide_arm(arm=other_arm):
-                # Retract arm claw towards base
-                self.target_coords = self.base.rect.center
-
                 # Drop any previously picked object
                 self.picked_object = None
 
@@ -182,25 +166,21 @@ class Arm:
                     if obj is not None:
                         # Pick object and aim towards arm base
                         self.picked_object = obj
-                        self.target_coords = self.base.rect.center
 
                 if self.is_retracted():
-                    # Arm is retracted: reset target and cancel collision penalty
-                    self.target_coords = None
+                    # Arm is fully retracted: cancel collision penalty if any
                     self.collision_penalty = False
 
                     if self.picked_object is not None:
-                        # Drop object
+                        # Drop the picked object if any
                         dropped_obj_props = self.picked_object.props
                         self.board.objects.remove(self.picked_object)
                         self.picked_object = None
 
+                        # Return properties of dropped object for reward computation
                         return dropped_obj_props
 
-        else:
-            print("Error: moving arm without any target")
-
     def is_retracted(self) -> bool:
-        """Check if th arm claw has returned to its base"""
+        """Check if the arm is fully retracted (claw has returned to base)"""
 
         return self.claw.rect.center == self.base.rect.center

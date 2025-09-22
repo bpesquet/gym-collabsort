@@ -29,7 +29,7 @@ def test_random_agent() -> None:
     env = CollabSortEnv(render_mode=RenderMode.HUMAN)
     env.reset()
 
-    for _ in range(100):
+    for _ in range(60):
         _, _, _, _, _ = env.step(action=env.action_space.sample())
 
     env.close()

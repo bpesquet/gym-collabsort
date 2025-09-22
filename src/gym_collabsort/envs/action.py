@@ -6,7 +6,5 @@ class Action(Enum):
 
     # Do nothing
     WAIT = 0
-    # Aim arm towards specific coordinates
-    AIM = 1
     # Move arm
-    MOVE = 2
+    MOVE = 1
