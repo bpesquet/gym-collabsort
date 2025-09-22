@@ -82,12 +82,15 @@ class ArmClaw(Sprite):
         # Define initial location
         self.rect = self.image.get_rect(center=coords)
 
-    def move_towards(self, target_coords: Vector2) -> None:
+    def move_towards(self, target_coords: Vector2, speed_penalty: bool = False) -> None:
         """Move the claw towards a specific target"""
 
         # Update claw location
         coords = Vector2(self.rect.center)
-        coords.move_towards_ip(target_coords, self.config.arm_claw_speed)
+        max_distance = self.config.arm_claw_speed
+        if speed_penalty:
+            max_distance /= self.config.collision_speed_reduction_factor
+        coords.move_towards_ip(target_coords, max_distance)
         self.rect = self.image.get_rect(center=coords)
 
 
@@ -96,9 +99,9 @@ class Arm:
         self.board = board
         self.config = config
 
-        self.starting_coords: Vector2 = None
         self.target_coords: Vector2 = None
         self.picked_object: Object = None
+        self.collision_penalty: bool = False
 
         self._base: GroupSingle[ArmBase] = GroupSingle()
         self._claw: GroupSingle[ArmClaw] = GroupSingle()
@@ -112,9 +115,10 @@ class Arm:
         return self._claw.sprite
 
     def reset(self, coords: Vector2) -> None:
-        """Reset the arm to starting location"""
+        """Reset the arm to its starting location"""
 
-        self.starting_coords = coords
+        self._base.empty()
+        self._claw.empty()
 
         # Put robot arm base and claw at the center of the bottom row
         self._base.add(ArmBase(coords=coords, config=self.config))
@@ -136,12 +140,24 @@ class Arm:
             width=ARM_LINE_WIDTH,
         )
 
-    def collide(self, sprite: Sprite) -> bool:
-        """Check if a sprite collides with the arm"""
+    def collide_sprite(self, sprite: Sprite) -> bool:
+        """Check if the arm collides with a sprite"""
 
         return spritecollide(
             sprite=sprite, group=self._base, dokill=False
         ) or spritecollide(sprite=sprite, group=self._claw, dokill=False)
+
+    def collide_arm(self, arm: Arm) -> bool:
+        """Check if the arm collides with the other arm"""
+
+        collide_claw: bool = self.collide_sprite(sprite=arm.claw)
+        collide_base: bool = self.collide_sprite(sprite=arm.base)
+        collide_line: tuple = self.claw.rect.clipline(
+            first_coordinate=arm.base.rect.center,
+            second_coordinate=arm.claw.rect.center,
+        )
+
+        return collide_claw or collide_base or collide_line
 
     def action_aim(self, target_array: np.ndarray) -> None:
         """Aim arm towards specific coordinates"""
@@ -154,8 +170,50 @@ class Arm:
 
         self.target_coords = target_coords
 
-    def action_extend(self) -> None:
-        """Extract the arm towards the previously defined target"""
+    def action_move(self, other_arm: Arm) -> ObjectProps | None:
+        """Move arm claw towards target"""
+
+        if self.target_coords is not None:
+            # Move claw towards target
+            self.claw.move_towards(
+                target_coords=self.target_coords, speed_penalty=self.collision_penalty
+            )
+
+            if self.picked_object is not None:
+                # Move picked object alongside claw
+                self.picked_object.rect = self.picked_object.image.get_rect(
+                    center=self.claw.rect.center
+                )
+
+            if self.collide_arm(arm=other_arm):
+                # Collision detected with the other arm
+                self.collision_penalty = True
+            elif self.picked_object is None:
+                # Check if the claw can pick an object at current location
+                obj = self.board.get_object_at(coords=self.claw.rect.center)
+                if obj is not None:
+                    # Pick object and aim towards arm base
+                    self.picked_object = obj
+                    self.target_coords = self.base.rect.center
+
+            if self.is_retracted():
+                # Arm is retracted
+                self.target_coords = None
+                self.collision_penalty = False
+
+                if self.picked_object is not None:
+                    # Drop object
+                    dropped_obj_props = self.picked_object.props
+                    self.board.objects.remove(self.picked_object)
+                    self.picked_object = None
+
+                    return dropped_obj_props
+
+        else:
+            print("Error: moving arm without any target")
+
+    def action_extend(self, other_arm: Arm) -> bool:
+        """Extend the arm towards the previously defined target, returning collision status"""
 
         if self.target_coords is None:
             print("Error: trying to extend arm without any target")
@@ -164,6 +222,10 @@ class Arm:
         else:
             self.claw.move_towards(target_coords=self.target_coords)
 
+            if self.collide_arm(arm=other_arm):
+                self.collision_penalty = True
+                return True
+
             if self.picked_object is None:
                 # Check if the claw can pick an object
                 obj = self.board.get_object_at(coords=self.claw.rect.center)
@@ -171,21 +233,26 @@ class Arm:
                     self.picked_object = obj
                     self.target_coords = None
 
+        return False
+
     def action_retract(self) -> ObjectProps | None:
         """Retract the arm towards its base, returning properties of the dropped object if any"""
 
-        if self.picked_object is None:
-            print("Error: trying to retract arm with no picked object")
-        else:
-            self.claw.move_towards(target_coords=self.base.rect.center)
+        self.claw.move_towards(
+            target_coords=self.base.rect.center, speed_penalty=self.collision_penalty
+        )
+
+        if self.is_retracted():
+            # Arm is retracted after penalty
+            self.target_coords = None
+            self.collision_penalty = False
+
+        if self.picked_object is not None:
             self.picked_object.rect = self.picked_object.image.get_rect(
                 center=self.claw.rect.center
             )
 
-            if (
-                self.picked_object is not None
-                and self.claw.rect.center == self.base.rect.center
-            ):
+            if self.is_retracted():
                 # Drop object
                 dropped_obj_props = self.picked_object.props
                 self.board.objects.remove(self.picked_object)
@@ -195,3 +262,8 @@ class Arm:
 
         # No dropped object
         return None
+
+    def is_retracted(self) -> bool:
+        """Check if th arm claw has returned to its base"""
+
+        return self.claw.rect.center == self.base.rect.center

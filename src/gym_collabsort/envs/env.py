@@ -52,7 +52,7 @@ class CollabSortEnv(gym.Env):
         self.clock = None
 
         self.board = Board(config=self.config)
-        self.robot = Robot(board=self.board, config=config)
+        self.robot = Robot(arm=self.board.robot_arm, config=config)
 
         # Define action format
         self.action_space = gym.spaces.Dict(
@@ -136,11 +136,15 @@ class CollabSortEnv(gym.Env):
 
         # Handle robot action
         self._handle_action(
-            arm=self.board.robot_arm, action=self.robot.choose_actiob(board=self.board)
+            arm=self.board.robot_arm,
+            action=self.robot.choose_action(board=self.board),
+            other_arm=self.board.agent_arm,
         )
 
         # Handle agent action
-        dropped_obj_props = self._handle_action(arm=self.board.agent_arm, action=action)
+        dropped_obj_props = self._handle_action(
+            arm=self.board.agent_arm, action=action, other_arm=self.board.robot_arm
+        )
         if dropped_obj_props is not None:
             if dropped_obj_props.color == Color.BLUE:
                 reward = 2
@@ -157,14 +161,16 @@ class CollabSortEnv(gym.Env):
 
         return observation, reward, terminated, False, {}
 
-    def _handle_action(self, arm: Arm, action: dict) -> ObjectProps | None:
+    def _handle_action(
+        self, arm: Arm, action: dict, other_arm: Arm
+    ) -> ObjectProps | None:
         """Handle an action for agent or robot arm"""
 
         action_value: int = action["action_value"]
         if action_value == Action.AIM.value:
             arm.action_aim(target_array=action["target"])
         elif action_value == Action.EXTEND.value:
-            arm.action_extend()
+            arm.action_extend(other_arm=other_arm)
         elif action_value == Action.RETRACT.value:
             return arm.action_retract()
         elif action_value != Action.WAIT.value:

@@ -137,8 +137,8 @@ class Board:
                 config=self.config,
             )
             if (
-                not self.agent_arm.collide(sprite=new_obj)
-                and not self.robot_arm.collide(sprite=new_obj)
+                not self.agent_arm.collide_sprite(sprite=new_obj)
+                and not self.robot_arm.collide_sprite(sprite=new_obj)
                 and not spritecollide(sprite=new_obj, group=self.objects, dokill=False)
             ):
                 # Add new object if it doesn't collide with anything already present on the board
