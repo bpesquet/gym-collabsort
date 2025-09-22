@@ -37,6 +37,9 @@ class Object(Sprite):
         self.image = pygame.Surface(size=(config.object_size, config.object_size))
         self.image.fill(color=config.background_color)
 
+        # Make the rect pixels around the object shape transparent
+        self.image.set_colorkey(config.background_color)
+
         self.color = color
         self.shape = shape
 
@@ -178,12 +181,34 @@ class Board:
         # fill the surface with background color to wipe away anything previously drawed
         self.canvas.fill(self.config.background_color)
 
+        # Draw arms bases
+        self.agent_arm._base.draw(surface=self.canvas)
+        self.robot_arm._base.draw(surface=self.canvas)
+
         # Draw objects
         self.objects.draw(surface=self.canvas)
 
-        # Draw arms
-        self.agent_arm.draw(surface=self.canvas)
-        self.robot_arm.draw(surface=self.canvas)
+        # Draw agent arm claw
+        self.agent_arm._claw.draw(surface=self.canvas)
+        # Draw line between agent arm base and claw
+        pygame.draw.line(
+            surface=self.canvas,
+            color="black",
+            start_pos=self.agent_arm.base.rect.center,
+            end_pos=self.agent_arm.claw.rect.center,
+            width=self.config.arm_line_width,
+        )
+
+        # Draw robot arm claw
+        self.robot_arm._claw.draw(surface=self.canvas)
+        # Draw line between robot arm base and claw
+        pygame.draw.line(
+            surface=self.canvas,
+            color="black",
+            start_pos=self.robot_arm.base.rect.center,
+            end_pos=self.robot_arm.claw.rect.center,
+            width=self.config.arm_line_width,
+        )
 
         return self.canvas
 

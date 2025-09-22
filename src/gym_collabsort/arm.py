@@ -18,10 +18,6 @@ if TYPE_CHECKING:
     # https://stackoverflow.com/a/67673741
     from .board import Board, Object, ObjectProps
 
-# Drawing constants
-ARM_BASE_LINE_WIDTH: int = 5
-ARM_LINE_WIDTH: int = 7
-
 
 class ArmBase(Sprite):
     """Base of the agent or robot arm"""
@@ -41,7 +37,7 @@ class ArmBase(Sprite):
                 color="black",
                 start_pos=(x, 0),
                 end_pos=(x, config.arm_base_size),
-                width=ARM_BASE_LINE_WIDTH,
+                width=config.arm_base_line_width,
             )
         # Draw horizontal lines
         for y in (0, config.arm_base_size - 1):
@@ -50,7 +46,7 @@ class ArmBase(Sprite):
                 color="black",
                 start_pos=(0, y),
                 end_pos=(config.arm_base_size, y),
-                width=ARM_BASE_LINE_WIDTH,
+                width=config.arm_base_line_width,
             )
 
         # Define initial location
@@ -123,22 +119,6 @@ class Arm:
         # Put robot arm base and claw at the center of the bottom row
         self._base.add(ArmBase(coords=coords, config=self.config))
         self._claw.add(ArmClaw(coords=coords, config=self.config))
-
-    def draw(self, surface: pygame.Surface) -> None:
-        """Draw the arm on a surface"""
-
-        # Draw arm base and claw
-        self._base.draw(surface=surface)
-        self._claw.draw(surface=surface)
-
-        # Draw line between arm base and claw
-        pygame.draw.line(
-            surface=surface,
-            color="black",
-            start_pos=self.base.rect.center,
-            end_pos=self.claw.rect.center,
-            width=ARM_LINE_WIDTH,
-        )
 
     def collide_sprite(self, sprite: Sprite) -> bool:
         """Check if the arm collides with a sprite"""

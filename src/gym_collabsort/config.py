@@ -43,6 +43,12 @@ class Config:
     # Size (height & width) of the base of agent and robot arms in pixels
     arm_base_size: int = object_size
 
+    # Width of arm base lines in pixels
+    arm_base_line_width: int = 5
+
+    # Width of the line between arm base and claw in pixels
+    arm_line_width: int = 7
+
     # Size (height & width) of the agent and robot claws in pixels
     arm_claw_size: int = arm_base_size / 2
 
