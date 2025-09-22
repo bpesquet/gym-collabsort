@@ -179,7 +179,6 @@ class Board:
         self.canvas.fill(self.config.background_color)
 
         # Draw objects
-        self.objects.update()
         self.objects.draw(surface=self.canvas)
 
         # Draw arms

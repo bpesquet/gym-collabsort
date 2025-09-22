@@ -8,7 +8,5 @@ class Action(Enum):
     WAIT = 0
     # Aim arm towards specific coordinates
     AIM = 1
-    # Extend arm
-    EXTEND = 2
-    # Retract arm
-    RETRACT = 3
+    # Move arm
+    MOVE = 2

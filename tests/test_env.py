@@ -13,28 +13,38 @@ def test_reset() -> None:
     assert info == {}
 
 
-def test_robot_vs_robot() -> None:
-    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
-    env.reset()
-
-    agent = Robot(arm=env.board.agent_arm, config=env.config)
-
-    ep_over: bool = False
-    ep_reward = 0
-    while not ep_over:
-        _, ep_reward, terminated, trucanted, _ = env.step(
-            action=agent.choose_action(board=env.board)
-        )
-        ep_over = terminated or trucanted
-
-
 def test_render_rgb() -> None:
     env = CollabSortEnv(render_mode=RenderMode.RGB_ARRAY)
     env.reset()
 
-    env.step(env.action_space.sample())
+    env.step(action=env.action_space.sample())
 
     frame = env.render()
     assert frame.ndim == 3
     assert frame.shape[0] == env.config.board_height
     assert frame.shape[1] == env.config.board_width
+
+
+def test_random_agent() -> None:
+    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
+    env.reset()
+
+    for _ in range(100):
+        _, _, _, _, _ = env.step(action=env.action_space.sample())
+
+    env.close()
+
+
+def test_robot_vs_robot() -> None:
+    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
+    env.reset()
+
+    # Use robot policy for agent
+    robotic_agent = Robot(arm=env.board.agent_arm, config=env.config)
+
+    ep_over: bool = False
+    while not ep_over:
+        _, _, terminated, trucanted, _ = env.step(action=robotic_agent.choose_action())
+        ep_over = terminated or trucanted
+
+    env.close()

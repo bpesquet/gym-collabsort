@@ -52,9 +52,6 @@ class Config:
     # Factor by which the arm speed is reduced after a collision
     collision_speed_reduction_factor: int = 4
 
-    # Duration in seconds of arm speed reduction after a collision
-    collision_penalty_duration = 10
-
     # Background color of the grid
     background_color: str = "white"
 

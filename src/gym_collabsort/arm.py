@@ -186,82 +186,39 @@ class Arm:
                 )
 
             if self.collide_arm(arm=other_arm):
-                # Collision detected with the other arm
+                # Retract arm claw towards base
+                self.target_coords = self.base.rect.center
+
+                # Drop any previously picked object
+                self.picked_object = None
+
+                # Set collision penalty for both arms
                 self.collision_penalty = True
-            elif self.picked_object is None:
-                # Check if the claw can pick an object at current location
-                obj = self.board.get_object_at(coords=self.claw.rect.center)
-                if obj is not None:
-                    # Pick object and aim towards arm base
-                    self.picked_object = obj
-                    self.target_coords = self.base.rect.center
+                other_arm.collision_penalty = True
+            else:
+                if self.picked_object is None:
+                    # Check if the claw can pick an object at current location
+                    obj = self.board.get_object_at(coords=self.claw.rect.center)
+                    if obj is not None:
+                        # Pick object and aim towards arm base
+                        self.picked_object = obj
+                        self.target_coords = self.base.rect.center
 
-            if self.is_retracted():
-                # Arm is retracted
-                self.target_coords = None
-                self.collision_penalty = False
+                if self.is_retracted():
+                    # Arm is retracted: reset target and cancel collision penalty
+                    self.target_coords = None
+                    self.collision_penalty = False
 
-                if self.picked_object is not None:
-                    # Drop object
-                    dropped_obj_props = self.picked_object.props
-                    self.board.objects.remove(self.picked_object)
-                    self.picked_object = None
+                    if self.picked_object is not None:
+                        # Drop object
+                        dropped_obj_props = self.picked_object.props
+                        self.board.objects.remove(self.picked_object)
+                        self.picked_object = None
 
-                    return dropped_obj_props
+                        return dropped_obj_props
 
         else:
             print("Error: moving arm without any target")
-
-    def action_extend(self, other_arm: Arm) -> bool:
-        """Extend the arm towards the previously defined target, returning collision status"""
-
-        if self.target_coords is None:
-            print("Error: trying to extend arm without any target")
-        elif self.picked_object is not None:
-            print("Warning: trying to extend arm with a picked object")
-        else:
-            self.claw.move_towards(target_coords=self.target_coords)
-
-            if self.collide_arm(arm=other_arm):
-                self.collision_penalty = True
-                return True
-
-            if self.picked_object is None:
-                # Check if the claw can pick an object
-                obj = self.board.get_object_at(coords=self.claw.rect.center)
-                if obj is not None:
-                    self.picked_object = obj
-                    self.target_coords = None
-
-        return False
-
-    def action_retract(self) -> ObjectProps | None:
-        """Retract the arm towards its base, returning properties of the dropped object if any"""
-
-        self.claw.move_towards(
-            target_coords=self.base.rect.center, speed_penalty=self.collision_penalty
-        )
-
-        if self.is_retracted():
-            # Arm is retracted after penalty
-            self.target_coords = None
-            self.collision_penalty = False
-
-        if self.picked_object is not None:
-            self.picked_object.rect = self.picked_object.image.get_rect(
-                center=self.claw.rect.center
-            )
-
-            if self.is_retracted():
-                # Drop object
-                dropped_obj_props = self.picked_object.props
-                self.board.objects.remove(self.picked_object)
-                self.picked_object = None
-
-                return dropped_obj_props
-
-        # No dropped object
-        return None
 
     def is_retracted(self) -> bool:
         """Check if th arm claw has returned to its base"""

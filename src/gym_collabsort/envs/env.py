@@ -137,7 +137,7 @@ class CollabSortEnv(gym.Env):
         # Handle robot action
         self._handle_action(
             arm=self.board.robot_arm,
-            action=self.robot.choose_action(board=self.board),
+            action=self.robot.choose_action(),
             other_arm=self.board.agent_arm,
         )
 
@@ -169,10 +169,8 @@ class CollabSortEnv(gym.Env):
         action_value: int = action["action_value"]
         if action_value == Action.AIM.value:
             arm.action_aim(target_array=action["target"])
-        elif action_value == Action.EXTEND.value:
-            arm.action_extend(other_arm=other_arm)
-        elif action_value == Action.RETRACT.value:
-            return arm.action_retract()
+        elif action_value == Action.MOVE.value:
+            return arm.action_move(other_arm=other_arm)
         elif action_value != Action.WAIT.value:
             print(f"Error: unknown action value {action_value}")
 
@@ -207,8 +205,4 @@ class CollabSortEnv(gym.Env):
     def close(self) -> None:
         if self.window is not None:
             pygame.display.quit()
-            pygame.quit()
-            pygame.quit()
-            pygame.quit()
-            pygame.quit()
             pygame.quit()
