@@ -46,6 +46,9 @@ class Config:
     # Size (height & width) of the agent and robot claws in pixels
     arm_claw_size: int = arm_base_size / 2
 
+    # Arm claw movement speed in pixels
+    arm_claw_speed: int = 20
+
     # Background color of the grid
     background_color: str = "white"
 

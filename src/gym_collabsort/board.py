@@ -2,6 +2,8 @@
 The environment board and its content.
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pygame
 from pygame.math import Vector2
@@ -9,6 +11,14 @@ from pygame.sprite import Group, Sprite, spritecollide
 
 from gym_collabsort.arm import Arm
 from gym_collabsort.config import Color, Config, Shape
+
+
+@dataclass
+class ObjectProps:
+    """Properties of an object"""
+
+    color: Color
+    shape: Shape
 
 
 class Object(Sprite):
@@ -54,6 +64,10 @@ class Object(Sprite):
         # Define initial location
         self.rect = self.image.get_rect(center=coords)
 
+    @property
+    def props(self) -> ObjectProps:
+        return ObjectProps(color=self.color, shape=self.shape)
+
 
 class Board:
     """The environment board"""
@@ -71,6 +85,7 @@ class Board:
         # Create an empty group for objects
         self.objects: Group[Object] = Group()
 
+        # Create agent and robot arms
         self.agent_arm = Arm(board=self, config=config)
         self.robot_arm = Arm(board=self, config=config)
 
@@ -129,6 +144,33 @@ class Board:
                 # Add new object if it doesn't collide with anything already present on the board
                 self.objects.add(new_obj)
                 remaining_objects -= 1
+
+    def get_object_at(self, coords: Vector2) -> Object | None:
+        """Return the object at a given location, if any"""
+
+        for obj in self.objects:
+            if obj.rect.center == coords:
+                return obj
+
+    def get_compatible_objects(
+        self, colors: tuple[Color], shapes: tuple[Shape]
+    ) -> list[Object]:
+        """Get the ordered list of board objects with compatible colors and shapes"""
+
+        shape_compatible_objects: list[Object] = []
+        compatible_objects: list[Object] = []
+
+        for shape in shapes:
+            for obj in self.objects:
+                if obj.shape == shape:
+                    shape_compatible_objects.append(obj)
+
+        for color in colors:
+            for obj in shape_compatible_objects:
+                if obj.color == color:
+                    compatible_objects.append(obj)
+
+        return compatible_objects
 
     def draw(self) -> pygame.Surface:
         """Draw the board"""

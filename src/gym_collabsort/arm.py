@@ -16,7 +16,7 @@ from .config import Config
 if TYPE_CHECKING:
     # Only import the below statements during type checking to avoid a circular reference
     # https://stackoverflow.com/a/67673741
-    from .board import Board
+    from .board import Board, Object, ObjectProps
 
 # Drawing constants
 ARM_BASE_LINE_WIDTH: int = 5
@@ -60,8 +60,10 @@ class ArmBase(Sprite):
 class ArmClaw(Sprite):
     """Claw of the agent or robot arm"""
 
-    def __init__(self, coords: Vector2, config: Config):
+    def __init__(self, coords: Vector2, config: Config) -> None:
         super().__init__()
+
+        self.config = config
 
         # Init image
         self.image = pygame.Surface(size=(config.arm_claw_size, config.arm_claw_size))
@@ -81,21 +83,25 @@ class ArmClaw(Sprite):
         self.rect = self.image.get_rect(center=coords)
 
     def move_towards(self, target_coords: Vector2) -> None:
+        """Move the claw towards a specific target"""
+
+        # Update claw location
         coords = Vector2(self.rect.center)
-        coords.move_towards_ip(target_coords, 2)
+        coords.move_towards_ip(target_coords, self.config.arm_claw_speed)
         self.rect = self.image.get_rect(center=coords)
 
 
 class Arm:
-    def __init__(self, board: Board, config: Config):
+    def __init__(self, board: Board, config: Config) -> None:
         self.board = board
         self.config = config
 
         self.starting_coords: Vector2 = None
+        self.target_coords: Vector2 = None
+        self.picked_object: Object = None
+
         self._base: GroupSingle[ArmBase] = GroupSingle()
         self._claw: GroupSingle[ArmClaw] = GroupSingle()
-
-        self.target_coords: Vector2 = None
 
     @property
     def base(self) -> ArmBase:
@@ -111,18 +117,8 @@ class Arm:
         self.starting_coords = coords
 
         # Put robot arm base and claw at the center of the bottom row
-        self._base.add(
-            ArmBase(
-                coords=coords,
-                config=self.config,
-            )
-        )
-        self._claw.add(
-            ArmClaw(
-                coords=coords,
-                config=self.config,
-            )
-        )
+        self._base.add(ArmBase(coords=coords, config=self.config))
+        self._claw.add(ArmClaw(coords=coords, config=self.config))
 
     def draw(self, surface: pygame.Surface) -> None:
         """Draw the arm on a surface"""
@@ -159,7 +155,43 @@ class Arm:
         self.target_coords = target_coords
 
     def action_extend(self) -> None:
+        """Extract the arm towards the previously defined target"""
+
         if self.target_coords is None:
-            print("Error: trying to extend arm without anu target")
+            print("Error: trying to extend arm without any target")
+        elif self.picked_object is not None:
+            print("Warning: trying to extend arm with a picked object")
         else:
             self.claw.move_towards(target_coords=self.target_coords)
+
+            if self.picked_object is None:
+                # Check if the claw can pick an object
+                obj = self.board.get_object_at(coords=self.claw.rect.center)
+                if obj is not None:
+                    self.picked_object = obj
+                    self.target_coords = None
+
+    def action_retract(self) -> ObjectProps | None:
+        """Retract the arm towards its base, returning properties of the dropped object if any"""
+
+        if self.picked_object is None:
+            print("Error: trying to retract arm with no picked object")
+        else:
+            self.claw.move_towards(target_coords=self.base.rect.center)
+            self.picked_object.rect = self.picked_object.image.get_rect(
+                center=self.claw.rect.center
+            )
+
+            if (
+                self.picked_object is not None
+                and self.claw.rect.center == self.base.rect.center
+            ):
+                # Drop object
+                dropped_obj_props = self.picked_object.props
+                self.board.objects.remove(self.picked_object)
+                self.picked_object = None
+
+                return dropped_obj_props
+
+        # No dropped object
+        return None

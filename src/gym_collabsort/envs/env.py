@@ -2,28 +2,18 @@
 Gym environment for a collaborative sorting task.
 """
 
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
 import pygame
 
-from gym_collabsort.board import Board, Object, Shape
+from gym_collabsort.board import Arm, Board, Color, Object, ObjectProps, Shape
 from gym_collabsort.config import Config
 
-
-class Action(Enum):
-    """Possible actions for an agent"""
-
-    # Do nothing
-    WAIT = 0
-    # Aim arm towards specific coordinates
-    AIM = 1
-    # Extend arm
-    EXTEND = 2
-    # Retract arm
-    RETRACT = 3
+from .action import Action
+from .robot import Robot
 
 
 class RenderMode(StrEnum):
@@ -41,7 +31,7 @@ class CollabSortEnv(gym.Env):
         self,
         render_mode: RenderMode = RenderMode.NONE,
         config: Config | None = None,
-    ):
+    ) -> None:
         """Initialize the environment"""
 
         if config is None:
@@ -62,11 +52,12 @@ class CollabSortEnv(gym.Env):
         self.clock = None
 
         self.board = Board(config=self.config)
+        self.robot = Robot(board=self.board, config=config)
 
         # Define action format
         self.action_space = gym.spaces.Dict(
             {
-                "action": gym.spaces.Discrete(n=len(Action)),
+                "action_value": gym.spaces.Discrete(n=len(Action)),
                 "target": self._get_coords_space(),
             }
         )
@@ -141,13 +132,20 @@ class CollabSortEnv(gym.Env):
         }
 
     def step(self, action: dict) -> tuple[dict, int, bool, bool, dict]:
-        if action["action"] == Action.AIM.value:
-            self.board.agent_arm.action_aim(target_array=action["target"])
+        reward = -0.1
 
-        elif action["action"] == Action.EXTEND.value:
-            self.board.agent_arm.action_extend()
+        # Handle robot action
+        self._handle_action(
+            arm=self.board.robot_arm, action=self.robot.choose_actiob(board=self.board)
+        )
 
-        reward = 0
+        # Handle agent action
+        dropped_obj_props = self._handle_action(arm=self.board.agent_arm, action=action)
+        if dropped_obj_props is not None:
+            if dropped_obj_props.color == Color.BLUE:
+                reward = 2
+            else:
+                reward = -2
 
         observation = self._get_obs()
 
@@ -158,6 +156,19 @@ class CollabSortEnv(gym.Env):
             self._render_frame()
 
         return observation, reward, terminated, False, {}
+
+    def _handle_action(self, arm: Arm, action: dict) -> ObjectProps | None:
+        """Handle an action for agent or robot arm"""
+
+        action_value: int = action["action_value"]
+        if action_value == Action.AIM.value:
+            arm.action_aim(target_array=action["target"])
+        elif action_value == Action.EXTEND.value:
+            arm.action_extend()
+        elif action_value == Action.RETRACT.value:
+            return arm.action_retract()
+        elif action_value != Action.WAIT.value:
+            print(f"Error: unknown action value {action_value}")
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:
@@ -190,5 +201,8 @@ class CollabSortEnv(gym.Env):
     def close(self) -> None:
         if self.window is not None:
             pygame.display.quit()
+            pygame.quit()
+            pygame.quit()
+            pygame.quit()
             pygame.quit()
             pygame.quit()

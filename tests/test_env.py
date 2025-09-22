@@ -12,18 +12,17 @@ def test_reset() -> None:
     assert info == {}
 
 
-def test_random_actions() -> None:
+def test_robot() -> None:
     env = CollabSortEnv(render_mode=RenderMode.HUMAN)
     env.reset()
 
+    ep_over: bool = False
     ep_reward = 0
-    for _ in range(1000):
-        _, reward, _, _, _ = env.step(env.action_space.sample())
-
-        ep_reward += reward
-
-    env.close()
-    print(f"Episode over, reward={ep_reward:.02f}")
+    while not ep_over:
+        _, ep_reward, terminated, trucanted, _ = env.step(
+            action=env.action_space.sample()
+        )
+        ep_over = terminated or trucanted
 
 
 def test_render_rgb() -> None:

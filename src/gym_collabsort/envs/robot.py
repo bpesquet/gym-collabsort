@@ -6,43 +6,37 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 from ..config import Config
+from .action import Action
 
 if TYPE_CHECKING:
     # Only import the below statements during type checking to avoid a circular reference
     # https://stackoverflow.com/a/67673741
-    from ..grid import Grid
+    from ..board import Board
 
 
 class Robot:
-    def __init__(self, grid: Grid, config: Config):
-        self.grid = grid
+    def __init__(self, board: Board, config: Config):
+        self.board = board
         self.config = config
 
-    def choose_direction(self) -> tuple[int, int]:
-        if self.grid.robot_arm.claw.picked_object is not None:
-            # Retract arm: aim for previous claw position
-            target_location = self.grid.robot_arm.previous_claw_locations[-1]
+    def choose_actiob(self, board: Board) -> dict:
+        """Choose robot action"""
+
+        if board.robot_arm.picked_object is not None:
+            return {"action_value": Action.RETRACT.value, "target": None}
+        elif board.robot_arm.target_coords is not None:
+            return {"action_value": Action.EXTEND.value, "target": None}
         else:
             # Aim for a compatible object
-            compatible_objects = self.grid.get_objects(
+            compatible_objects = self.board.get_compatible_objects(
                 colors=self.config.robor_color_priorities,
                 shapes=self.config.robor_shape_priorities,
             )
             if len(compatible_objects) > 0:
                 # Aim for the first compatible object
-                target_obj = compatible_objects[0]
-                target_location = target_obj.location
+                target = compatible_objects[0].rect.center
+                return {"action_value": Action.AIM.value, "target": target}
             else:
-                # No possible target: no movement
-                target_location = self.grid.robot_arm.claw.location
-
-        delta_array = np.clip(
-            a=target_location - self.grid.robot_arm.claw.location,
-            a_min=(-1, -1),
-            a_max=(1, 1),
-        )
-
-        return (delta_array[0], delta_array[1])
+                # No possible target => no movement
+                return {"action_value": Action.WAIT.value, "target": None}
