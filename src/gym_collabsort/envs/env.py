@@ -121,7 +121,7 @@ class CollabSortEnv(gym.Env):
         """Return properties for a aspecific object"""
 
         return {
-            "coords": object.rect.center,
+            "coords": object.coords,
             "color": object.color,
             "shape": object.shape,
         }

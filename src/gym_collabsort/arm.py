@@ -8,9 +8,10 @@ from typing import TYPE_CHECKING
 
 import pygame
 from pygame.math import Vector2
-from pygame.sprite import GroupSingle, Sprite, spritecollide
+from pygame.sprite import GroupSingle, spritecollide
 
 from .config import Config
+from .sprite import Sprite
 
 if TYPE_CHECKING:
     # Only import the below statements during type checking to avoid a circular reference
@@ -22,11 +23,11 @@ class ArmBase(Sprite):
     """Base of the agent or robot arm"""
 
     def __init__(self, coords: Vector2, config: Config) -> None:
-        super().__init__()
-
-        # Init image
-        self.image = pygame.Surface(size=(config.arm_base_size, config.arm_base_size))
-        self.image.fill(color=config.background_color)
+        super().__init__(
+            coords=coords,
+            size=config.arm_base_size,
+            background_color=config.background_color,
+        )
 
         # Draw an empty square box
         # Draw vertical lines
@@ -48,24 +49,19 @@ class ArmBase(Sprite):
                 width=config.arm_base_line_width,
             )
 
-        # Define initial location
-        self.rect = self.image.get_rect(center=coords)
-
 
 class ArmClaw(Sprite):
     """Claw of the agent or robot arm"""
 
     def __init__(self, coords: Vector2, config: Config) -> None:
-        super().__init__()
+        super().__init__(
+            coords=coords,
+            size=config.arm_claw_size,
+            background_color=config.background_color,
+            transparent_background=True,
+        )
 
         self.config = config
-
-        # Init image
-        self.image = pygame.Surface(size=(config.arm_claw_size, config.arm_claw_size))
-        self.image.fill(color=config.background_color)
-
-        # Make the rect pixels around the claw shape transparent
-        self.image.set_colorkey(config.background_color)
 
         pygame.draw.circle(
             surface=self.image,
@@ -74,19 +70,18 @@ class ArmClaw(Sprite):
             radius=config.arm_claw_size // 2,
         )
 
-        # Define initial location
-        self.rect = self.image.get_rect(center=coords)
-
     def move_towards(self, target_coords: Vector2, speed_penalty: bool = False) -> None:
         """Move the claw towards a specific target"""
 
-        # Update claw location
-        coords = Vector2(self.rect.center)
+        # Compute new location, including speed penalty if any
+        coords = Vector2(self.coords)
         max_distance = self.config.arm_claw_speed
         if speed_penalty:
             max_distance /= self.config.collision_speed_reduction_factor
+
+        # Move claw to new location
         coords.move_towards_ip(target_coords, max_distance)
-        self.rect = self.image.get_rect(center=coords)
+        self.coords = coords
 
 
 class Arm:
@@ -131,8 +126,8 @@ class Arm:
         collide_claw: bool = self.collide_sprite(sprite=arm.claw)
         collide_base: bool = self.collide_sprite(sprite=arm.base)
         collide_line: tuple = self.claw.rect.clipline(
-            first_coordinate=arm.base.rect.center,
-            second_coordinate=arm.claw.rect.center,
+            first_coordinate=arm.base.coords,
+            second_coordinate=arm.claw.coords,
         )
 
         return collide_claw or collide_base or collide_line
@@ -140,7 +135,7 @@ class Arm:
     def action_move(self, target_coords: Vector2, other_arm: Arm) -> ObjectProps | None:
         """Move arm claw towards target coordinates"""
 
-        if target_coords != self.claw.rect.center:
+        if target_coords != self.claw.coords:
             # Move claw towards target if different from current location
             self.claw.move_towards(
                 target_coords=target_coords, speed_penalty=self.collision_penalty
@@ -149,7 +144,7 @@ class Arm:
             if self.picked_object is not None:
                 # Move picked object alongside claw
                 self.picked_object.rect = self.picked_object.image.get_rect(
-                    center=self.claw.rect.center
+                    center=self.claw.coords
                 )
 
             if self.collide_arm(arm=other_arm):
@@ -162,7 +157,7 @@ class Arm:
             else:
                 if self.picked_object is None:
                     # Check if the claw can pick an object at current location
-                    obj = self.board.get_object_at(coords=self.claw.rect.center)
+                    obj = self.board.get_object_at(coords=self.claw.coords)
                     if obj is not None:
                         # Pick object and aim towards arm base
                         self.picked_object = obj
@@ -183,4 +178,4 @@ class Arm:
     def is_retracted(self) -> bool:
         """Check if the arm is fully retracted (claw has returned to base)"""
 
-        return self.claw.rect.center == self.base.rect.center
+        return self.claw.coords == self.base.coords

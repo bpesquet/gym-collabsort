@@ -7,10 +7,11 @@ from dataclasses import dataclass
 import numpy as np
 import pygame
 from pygame.math import Vector2
-from pygame.sprite import Group, Sprite, spritecollide
+from pygame.sprite import Group, spritecollide
 
-from gym_collabsort.arm import Arm
-from gym_collabsort.config import Color, Config, Shape
+from .arm import Arm
+from .config import Color, Config, Shape
+from .sprite import Sprite
 
 
 @dataclass
@@ -31,14 +32,12 @@ class Object(Sprite):
         color: Color,
         shape: Shape,
     ) -> None:
-        super().__init__()
-
-        # Init object image
-        self.image = pygame.Surface(size=(config.object_size, config.object_size))
-        self.image.fill(color=config.background_color)
-
-        # Make the rect pixels around the object shape transparent
-        self.image.set_colorkey(config.background_color)
+        super().__init__(
+            coords=coords,
+            size=config.object_size,
+            background_color=config.background_color,
+            transparent_background=True,
+        )
 
         self.color = color
         self.shape = shape
@@ -63,9 +62,6 @@ class Object(Sprite):
             pygame.draw.polygon(
                 surface=self.image, color=self.color, points=(top, bl, br)
             )
-
-        # Define initial location
-        self.rect = self.image.get_rect(center=coords)
 
     @property
     def props(self) -> ObjectProps:
@@ -152,7 +148,7 @@ class Board:
         """Return the object at a given location, if any"""
 
         for obj in self.objects:
-            if obj.rect.center == coords:
+            if obj.coords == coords:
                 return obj
 
     def get_compatible_objects(
@@ -202,8 +198,8 @@ class Board:
         pygame.draw.line(
             surface=self.canvas,
             color="black",
-            start_pos=self.agent_arm.base.rect.center,
-            end_pos=self.agent_arm.claw.rect.center,
+            start_pos=self.agent_arm.base.coords,
+            end_pos=self.agent_arm.claw.coords,
             width=self.config.arm_line_width,
         )
 
@@ -213,8 +209,8 @@ class Board:
         pygame.draw.line(
             surface=self.canvas,
             color="black",
-            start_pos=self.robot_arm.base.rect.center,
-            end_pos=self.robot_arm.claw.rect.center,
+            start_pos=self.robot_arm.base.coords,
+            end_pos=self.robot_arm.claw.coords,
             width=self.config.arm_line_width,
         )
 

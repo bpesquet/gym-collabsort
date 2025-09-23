@@ -26,7 +26,7 @@ def test_render_rgb() -> None:
 
 
 def test_random_agent() -> None:
-    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
+    env = CollabSortEnv(render_mode=RenderMode.NONE)
     env.reset()
 
     for _ in range(60):

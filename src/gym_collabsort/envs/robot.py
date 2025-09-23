@@ -22,14 +22,14 @@ class Robot:
             self.target = None
         elif self.arm.collision_penalty or self.arm.picked_object is not None:
             # Retract arm towards its base after a collision or if a object has been picked
-            self.target = self.arm.base.rect.center
+            self.target = self.arm.base.coords
         elif (
             self.target is not None
             and self.arm.board.get_object_at(self.target) is None
         ):
             # Previously targeted object is no longer there (probably picked by the other arm).
             # Retract arm towards its base
-            self.target = self.arm.base.rect.center
+            self.target = self.arm.base.coords
 
         if self.target is None:
             # Search for objects compatible with robot picking priorities
@@ -39,11 +39,11 @@ class Robot:
             )
             if len(compatible_objects) > 0:
                 # Aim for the first compatible object
-                self.target = compatible_objects[0].rect.center
+                self.target = compatible_objects[0].coords
 
         if self.target is not None:
             # Move arm towards target
             return self.target
         else:
             # No possible target => no movement
-            return self.arm.claw.rect.center
+            return self.arm.claw.coords
