@@ -10,9 +10,10 @@ import numpy as np
 import pygame
 from pygame.math import Vector2
 
-from gym_collabsort.board import Arm, Board, Color, Object, ObjectProps, Shape
-from gym_collabsort.config import Config
-
+from ..board.arm import Arm
+from ..board.board import Board
+from ..board.object import Color, Object, ObjectProps, Shape
+from ..config import Config
 from .robot import Robot
 
 
@@ -52,9 +53,9 @@ class CollabSortEnv(gym.Env):
         self.clock = None
 
         self.board = Board(config=self.config)
-        self.robot = Robot(arm=self.board.robot_arm, config=config)
+        self.robot = Robot(board=self.board, arm=self.board.robot_arm, config=config)
 
-        # Define action format
+        # Define action format: coordinates of target
         self.action_space = self._get_coords_space()
 
         # Define observation format. See _get_obs() method for details
@@ -78,7 +79,7 @@ class CollabSortEnv(gym.Env):
         )
 
     def _get_coords_space(self) -> gym.spaces.Space:
-        """Helper method to create a Box space for the coordinates of a board element"""
+        """Helper method to create a Box space for the 2D coordinates of a board element"""
 
         return gym.spaces.Box(
             low=np.array([0, 0]),
@@ -162,7 +163,9 @@ class CollabSortEnv(gym.Env):
         """Handle an action for agent or robot arm"""
 
         target_coords = Vector2(action[0], action[1])
-        return arm.action_move(target_coords=target_coords, other_arm=other_arm)
+        return arm.move(
+            board=self.board, target_coords=target_coords, other_arm=other_arm
+        )
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:

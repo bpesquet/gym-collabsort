@@ -10,13 +10,14 @@ import pygame
 from pygame.math import Vector2
 from pygame.sprite import GroupSingle, spritecollide
 
-from .config import Config
+from ..config import Config
+from .object import Object, ObjectProps
 from .sprite import Sprite
 
 if TYPE_CHECKING:
     # Only import the below statements during type checking to avoid a circular reference
     # https://stackoverflow.com/a/67673741
-    from .board import Board, Object, ObjectProps
+    from .board import Board
 
 
 class ArmBase(Sprite):
@@ -85,8 +86,7 @@ class ArmClaw(Sprite):
 
 
 class Arm:
-    def __init__(self, board: Board, config: Config) -> None:
-        self.board = board
+    def __init__(self, config: Config) -> None:
         self.config = config
 
         self.picked_object: Object = None
@@ -132,7 +132,9 @@ class Arm:
 
         return collide_claw or collide_base or collide_line
 
-    def action_move(self, target_coords: Vector2, other_arm: Arm) -> ObjectProps | None:
+    def move(
+        self, board: Board, target_coords: Vector2, other_arm: Arm
+    ) -> ObjectProps | None:
         """Move arm claw towards target coordinates"""
 
         if target_coords != self.claw.coords:
@@ -157,7 +159,7 @@ class Arm:
             else:
                 if self.picked_object is None:
                     # Check if the claw can pick an object at current location
-                    obj = self.board.get_object_at(coords=self.claw.coords)
+                    obj = board.get_object_at(coords=self.claw.coords)
                     if obj is not None:
                         # Pick object and aim towards arm base
                         self.picked_object = obj
@@ -169,7 +171,7 @@ class Arm:
                     if self.picked_object is not None:
                         # Drop the picked object if any
                         dropped_obj_props = self.picked_object.props
-                        self.board.objects.remove(self.picked_object)
+                        board.objects.remove(self.picked_object)
                         self.picked_object = None
 
                         # Return properties of dropped object for reward computation

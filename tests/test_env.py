@@ -40,7 +40,7 @@ def test_robot_vs_robot() -> None:
     env.reset()
 
     # Use robot policy for agent
-    robotic_agent = Robot(arm=env.board.agent_arm, config=env.config)
+    robotic_agent = Robot(board=env.board, arm=env.board.agent_arm, config=env.config)
 
     ep_over: bool = False
     while not ep_over:

@@ -4,7 +4,7 @@ Unit tests for board.
 
 import numpy as np
 
-from gym_collabsort.board import Board
+from gym_collabsort.board.board import Board
 
 
 def test_board() -> None:

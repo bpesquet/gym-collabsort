@@ -58,16 +58,16 @@ class Config:
     # Factor by which the arm speed is reduced after a collision
     collision_speed_reduction_factor: int = 4
 
-    # Background color of the grid
+    # Background color of the board
     background_color: str = "white"
 
-    # Number of pickable objects on the grid
+    # Number of pickable objects on the board
     n_objects: int = 15
 
-    # Possible colors for grid objects
+    # Possible colors for board objects
     object_colors: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
 
-    # Possible shapes for grid objects
+    # Possible shapes for board objects
     object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
 
     # Ordered list of robot color priorities for selecting objects to pick
