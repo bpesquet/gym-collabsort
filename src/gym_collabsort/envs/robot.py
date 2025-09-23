@@ -22,7 +22,7 @@ class Robot:
         if self.arm.is_retracted():
             # Reset target when arm is fully retracted
             self.target_coords = None
-        elif self.arm.collision_penalty or self.arm.picked_object is not None:
+        elif self.arm.collision_penalty or not self.arm.can_pick_object:
             # Retract arm towards its base after a collision or if a object has been picked
             self.target_coords = self.arm.base.coords
         elif (

@@ -36,8 +36,8 @@ class Config:
     # Width of board delimitation line in pixels
     board_line_width: int = 3
 
-    # Margin in pixels between the board and the objects dropped by each arm
-    board_margin: int = 5
+    # Margin in pixels around dropped objects
+    dropped_object_margin: int = 3
 
     @property
     def window_dimensions(self) -> tuple[int, int]:
@@ -53,7 +53,7 @@ class Config:
     def y_offset(self) -> int:
         """Return the offset for vertical coordinate (height of dropped objects line)"""
 
-        return self.object_size + self.board_margin
+        return self.object_size + self.dropped_object_margin
 
     # Title of the main window
     window_title = "Gym_collabsort - Collaborative sorting task"

@@ -89,7 +89,12 @@ class Arm:
     def __init__(self, config: Config) -> None:
         self.config = config
 
+        self.can_pick_object: bool = True
         self.picked_object: Object = None
+
+        self.has_dropped_object = False
+        self.dropped_object = None
+
         self.collision_penalty: bool = False
 
         self._base: GroupSingle[ArmBase] = GroupSingle()
@@ -105,6 +110,14 @@ class Arm:
 
     def reset(self, coords: Vector2) -> None:
         """Reset the arm to its starting location"""
+
+        self.can_pick_object = True
+        self.picked_object = None
+
+        self.has_dropped_object = False
+        self.dropped_object = None
+
+        self.collision_penalty = False
 
         self._base.empty()
         self._claw.empty()
@@ -126,8 +139,8 @@ class Arm:
         collide_claw: bool = self.collide_sprite(sprite=arm.claw)
         collide_base: bool = self.collide_sprite(sprite=arm.base)
         collide_line: tuple = self.claw.rect.clipline(
-            first_coordinate=arm.base.coords,
-            second_coordinate=arm.claw.coords,
+            first_coordinate=arm.base.coords_abs,
+            second_coordinate=arm.claw.coords_abs,
         )
 
         return collide_claw or collide_base or collide_line
@@ -143,41 +156,46 @@ class Arm:
                 target_coords=target_coords, speed_penalty=self.collision_penalty
             )
 
-            if self.picked_object is not None:
+            if not self.can_pick_object:
                 # Move picked object alongside claw
-                self.picked_object.rect = self.picked_object.image.get_rect(
-                    center=self.claw.coords_abs
-                )
+                self.picked_object.coords = self.claw.coords
 
             if self.collide_arm(arm=other_arm):
                 # Drop any previously picked object
-                self.picked_object = None
+                self.can_pick_object = True
 
                 # Set collision penalty for both arms
                 self.collision_penalty = True
                 other_arm.collision_penalty = True
             else:
-                if self.picked_object is None:
+                if self.can_pick_object:
                     # Check if the claw can pick an object at current location
                     obj = board.get_object_at(coords=self.claw.coords)
                     if obj is not None:
                         # Pick object and aim towards arm base
                         self.picked_object = obj
+                        self.can_pick_object = False
 
                 if self.is_retracted():
                     # Arm is fully retracted: cancel collision penalty if any
                     self.collision_penalty = False
 
-                    if self.picked_object is not None:
-                        # Drop the picked object if any
-                        dropped_obj_props = self.picked_object.props
-                        board.objects.remove(self.picked_object)
-                        self.picked_object = None
-
-                        # Return properties of dropped object for reward computation
-                        return dropped_obj_props
+                    if not self.can_pick_object:
+                        return self._drop_picked_object(board=board)
 
     def is_retracted(self) -> bool:
         """Check if the arm is fully retracted (claw has returned to base)"""
 
         return self.claw.coords == self.base.coords
+
+    def _drop_picked_object(self, board: Board) -> ObjectProps:
+        """Drop a previously picked object, returning its proeprties"""
+
+        dropped_obj_props = self.picked_object.props
+
+        self.has_dropped_object = True
+        self.dropped_object = self.picked_object
+        self.can_pick_object = True
+
+        # Return properties of dropped object
+        return dropped_obj_props

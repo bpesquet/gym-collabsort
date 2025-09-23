@@ -40,12 +40,6 @@ class Sprite(pygame.sprite.Sprite):
         # Y is offsetted to take into account the dropped objects line above the board
         return (self.rect.center[0], self.rect.center[1] - self.config.y_offset)
 
-    @property
-    def coords_abs(self) -> tuple[int, int]:
-        """Get absolute coordinates of sprite center"""
-
-        return self.rect.center
-
     @coords.setter
     def coords(self, value: Vector2 | tuple[int, int]) -> None:
         """Center sprite around given relative coordinates"""
@@ -57,3 +51,15 @@ class Sprite(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(
             center=(value[0], value[1] + self.config.y_offset)
         )
+
+    @property
+    def coords_abs(self) -> tuple[int, int]:
+        """Get absolute coordinates of sprite center"""
+
+        return self.rect.center
+
+    @coords_abs.setter
+    def coords_abs(self, value: Vector2 | tuple[int, int]) -> None:
+        """Center sprite around given absolute coordinates"""
+
+        self.rect = self.image.get_rect(center=value)

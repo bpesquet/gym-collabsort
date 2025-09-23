@@ -21,7 +21,7 @@ def test_render_rgb() -> None:
 
     frame = env.render()
     assert frame.ndim == 3
-    assert frame.shape[0] == env.config.board_height
+    assert frame.shape[0] == env.config.window_dimensions[1]
     assert frame.shape[1] == env.config.board_width
 
 

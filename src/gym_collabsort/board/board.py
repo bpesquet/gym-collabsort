@@ -32,6 +32,9 @@ class Board:
         self.agent_arm = Arm(config=config)
         self.robot_arm = Arm(config=config)
 
+        self.agent_dropped_objects: Group[Object] = Group()
+        self.robot_dropped_objects: Group[Object] = Group()
+
     def populate(
         self,
         rng: np.random.Generator,
@@ -53,6 +56,9 @@ class Board:
                 y=self.config.board_height - self.config.arm_base_size // 2,
             )
         )
+
+        self.agent_dropped_objects.empty()
+        self.robot_dropped_objects.empty()
 
         # Add objects to the board in an available location
         self.objects.empty()
@@ -107,8 +113,8 @@ class Board:
         available_objects = [
             obj
             for obj in self.objects
-            if obj != self.agent_arm.picked_object
-            and obj != self.robot_arm.picked_object
+            if (self.agent_arm.can_pick_object or obj != self.agent_arm.picked_object)
+            and (self.robot_arm.can_pick_object or obj != self.robot_arm.picked_object)
         ]
 
         for shape in shapes:
@@ -140,7 +146,37 @@ class Board:
                 width=self.config.board_line_width,
             )
 
-        # Draw arms bases
+        if self.agent_arm.has_dropped_object:
+            # Move dropped object to line above the board
+            self.agent_arm.dropped_object.coords_abs = (
+                len(self.agent_dropped_objects)
+                * (self.config.object_size + self.config.dropped_object_margin)
+                + self.config.object_size // 2
+                + self.config.dropped_object_margin,
+                self.agent_arm.base.coords_abs[1] + self.config.y_offset,
+            )
+            self.agent_dropped_objects.add(self.agent_arm.dropped_object)
+            self.objects.remove(self.agent_arm.dropped_object)
+            self.agent_arm.has_dropped_object = False
+
+        if self.robot_arm.has_dropped_object:
+            # Move dropped object to line below the board
+            self.robot_arm.dropped_object.coords_abs = (
+                len(self.robot_dropped_objects)
+                * (self.config.object_size + self.config.dropped_object_margin)
+                + self.config.object_size // 2
+                + self.config.dropped_object_margin,
+                self.robot_arm.base.coords_abs[1] - self.config.y_offset,
+            )
+            self.robot_dropped_objects.add(self.robot_arm.dropped_object)
+            self.objects.remove(self.robot_arm.dropped_object)
+            self.robot_arm.has_dropped_object = False
+
+        # Draw dropped objects for each arm
+        self.agent_dropped_objects.draw(surface=self.canvas)
+        self.robot_dropped_objects.draw(surface=self.canvas)
+
+        # Draw bases for each arm
         self.agent_arm._base.draw(surface=self.canvas)
         self.robot_arm._base.draw(surface=self.canvas)
 
