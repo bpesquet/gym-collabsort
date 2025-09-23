@@ -12,7 +12,7 @@ from pygame.math import Vector2
 
 from ..board.arm import Arm
 from ..board.board import Board
-from ..board.object import Color, Object, ObjectProps, Shape
+from ..board.object import Color, Object, Shape
 from ..config import Config
 from .robot import Robot
 
@@ -138,11 +138,13 @@ class CollabSortEnv(gym.Env):
         )
 
         # Handle agent action
-        dropped_obj_props = self._handle_action(
+        dropped_object = self._handle_action(
             arm=self.board.agent_arm, action=action, other_arm=self.board.robot_arm
         )
-        if dropped_obj_props is not None:
-            if dropped_obj_props.color == Color.BLUE:
+
+        # Compute reward
+        if dropped_object is not None:
+            if dropped_object.color == Color.BLUE:
                 reward = 2
             else:
                 reward = -2
@@ -159,7 +161,7 @@ class CollabSortEnv(gym.Env):
 
     def _handle_action(
         self, arm: Arm, action: tuple[int, int], other_arm: Arm
-    ) -> ObjectProps | None:
+    ) -> Object | None:
         """Handle an action for agent or robot arm"""
 
         target_coords = Vector2(action[0], action[1])
@@ -198,6 +200,6 @@ class CollabSortEnv(gym.Env):
             return self.board.get_frame()
 
     def close(self) -> None:
-        if self.window is not None:
+        if self.window:
             pygame.display.quit()
             pygame.quit()

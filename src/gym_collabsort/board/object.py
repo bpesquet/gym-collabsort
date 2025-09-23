@@ -1,20 +1,10 @@
 """ """
 
-from dataclasses import dataclass
-
 import pygame
 from pygame.math import Vector2
 
 from ..config import Color, Config, Shape
 from .sprite import Sprite
-
-
-@dataclass
-class ObjectProps:
-    """Properties of an object"""
-
-    color: Color
-    shape: Shape
 
 
 class Object(Sprite):
@@ -57,7 +47,3 @@ class Object(Sprite):
             pygame.draw.polygon(
                 surface=self.image, color=self.color, points=(top, bl, br)
             )
-
-    @property
-    def props(self) -> ObjectProps:
-        return ObjectProps(color=self.color, shape=self.shape)
