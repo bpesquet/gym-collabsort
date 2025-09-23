@@ -27,7 +27,7 @@ class ArmBase(Sprite):
         super().__init__(
             coords=coords,
             size=config.arm_base_size,
-            background_color=config.background_color,
+            config=config,
         )
 
         # Draw an empty square box
@@ -58,7 +58,7 @@ class ArmClaw(Sprite):
         super().__init__(
             coords=coords,
             size=config.arm_claw_size,
-            background_color=config.background_color,
+            config=config,
             transparent_background=True,
         )
 
@@ -146,7 +146,7 @@ class Arm:
             if self.picked_object is not None:
                 # Move picked object alongside claw
                 self.picked_object.rect = self.picked_object.image.get_rect(
-                    center=self.claw.coords
+                    center=self.claw.coords_abs
                 )
 
             if self.collide_arm(arm=other_arm):

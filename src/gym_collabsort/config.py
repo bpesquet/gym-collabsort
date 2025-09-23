@@ -29,13 +29,34 @@ class Config:
     # Frames Per Second for env rendering
     render_fps: int = 30
 
-    # Board dimensions
+    # Board dimensions in pixels
     board_height: int = 500
     board_width: int = 800
 
+    # Width of board delimitation line in pixels
+    board_line_width: int = 3
+
+    # Margin in pixels between the board and the objects dropped by each arm
+    board_margin: int = 5
+
     @property
-    def window_size(self) -> tuple[int, int]:
-        return (self.board_width, self.board_height)
+    def window_dimensions(self) -> tuple[int, int]:
+        """Return the dimensions (width, height) of the main window in pixels"""
+
+        # Add heights of both dropped objects lines
+        return (
+            self.board_width,
+            self.board_height + self.y_offset * 2,
+        )
+
+    @property
+    def y_offset(self) -> int:
+        """Return the offset for vertical coordinate (height of dropped objects line)"""
+
+        return self.object_size + self.board_margin
+
+    # Title of the main window
+    window_title = "Gym_collabsort - Collaborative sorting task"
 
     # Size (height & width) of an object in pixels
     object_size: int = 50

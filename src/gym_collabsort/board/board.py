@@ -23,7 +23,7 @@ class Board:
         self.config = config
 
         # Define the surface to draw upon
-        self.canvas = pygame.Surface(size=self.config.window_size)
+        self.canvas = pygame.Surface(size=self.config.window_dimensions)
 
         # Create an empty group for objects
         self.objects: Group[Object] = Group()
@@ -129,6 +129,17 @@ class Board:
         # fill the surface with background color to wipe away anything previously drawed
         self.canvas.fill(self.config.background_color)
 
+        # Draw board limits.
+        # Y is offsetted to take into account the dropped objects line above the board
+        for y in (0, self.config.board_height):
+            pygame.draw.line(
+                surface=self.canvas,
+                color="black",
+                start_pos=(0, y + self.config.y_offset),
+                end_pos=(self.config.board_width, y + self.config.y_offset),
+                width=self.config.board_line_width,
+            )
+
         # Draw arms bases
         self.agent_arm._base.draw(surface=self.canvas)
         self.robot_arm._base.draw(surface=self.canvas)
@@ -142,8 +153,8 @@ class Board:
         pygame.draw.line(
             surface=self.canvas,
             color="black",
-            start_pos=self.agent_arm.base.coords,
-            end_pos=self.agent_arm.claw.coords,
+            start_pos=self.agent_arm.base.coords_abs,
+            end_pos=self.agent_arm.claw.coords_abs,
             width=self.config.arm_line_width,
         )
 
@@ -153,8 +164,8 @@ class Board:
         pygame.draw.line(
             surface=self.canvas,
             color="black",
-            start_pos=self.robot_arm.base.coords,
-            end_pos=self.robot_arm.claw.coords,
+            start_pos=self.robot_arm.base.coords_abs,
+            end_pos=self.robot_arm.claw.coords_abs,
             width=self.config.arm_line_width,
         )
 

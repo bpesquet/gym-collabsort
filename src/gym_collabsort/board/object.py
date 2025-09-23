@@ -30,7 +30,7 @@ class Object(Sprite):
         super().__init__(
             coords=coords,
             size=config.object_size,
-            background_color=config.background_color,
+            config=config,
             transparent_background=True,
         )
 

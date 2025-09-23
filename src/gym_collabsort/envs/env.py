@@ -173,9 +173,11 @@ class CollabSortEnv(gym.Env):
 
     def _render_frame(self) -> np.ndarray | None:
         if self.window is None and self.render_mode == RenderMode.HUMAN:
+            # Init pygame display
             pygame.init()
             pygame.display.init()
-            self.window = pygame.display.set_mode(size=self.config.window_size)
+            self.window = pygame.display.set_mode(size=self.config.window_dimensions)
+            pygame.display.set_caption(self.config.window_title)
 
         if self.clock is None and self.render_mode == RenderMode.HUMAN:
             self.clock = pygame.time.Clock()
