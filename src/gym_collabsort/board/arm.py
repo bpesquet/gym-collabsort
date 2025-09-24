@@ -166,8 +166,9 @@ class Arm:
                 self.picked_object.coords = self.claw.coords
 
             if self.collide_arm(arm=other_arm):
-                # Drop any previously picked object
+                # Drop any previously picked objects
                 self._picked_object.empty()
+                other_arm._picked_object.empty()
 
                 # Set collision penalty for both arms
                 self.collision_penalty = True

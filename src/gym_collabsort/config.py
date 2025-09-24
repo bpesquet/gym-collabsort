@@ -91,6 +91,9 @@ class Config:
     # Possible shapes for board objects
     object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
 
+    # Time penalty used as based reward
+    reward__time_penalty: float = -0.1
+
     # Robot rewards linked to dropped objects' colors
     robot_color_rewards = {
         Color.RED: 5,

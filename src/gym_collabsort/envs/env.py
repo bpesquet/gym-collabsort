@@ -137,7 +137,7 @@ class CollabSortEnv(gym.Env):
 
     def step(self, action: tuple[int, int]) -> tuple[dict, float, bool, bool, dict]:
         # Init reward with a small time penalty
-        reward: float = -0.1
+        reward: float = self.config.reward__time_penalty
 
         # Handle robot action
         dropped_object = self._handle_action(
