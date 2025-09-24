@@ -3,7 +3,7 @@ Unit tests for environment.
 """
 
 from gym_collabsort.envs.env import CollabSortEnv, RenderMode
-from gym_collabsort.envs.robot import Robot
+from gym_collabsort.envs.robot import Robot, get_color_priorities, get_shape_priorities
 
 
 def test_reset() -> None:
@@ -39,8 +39,13 @@ def test_robot_vs_robot() -> None:
     env = CollabSortEnv(render_mode=RenderMode.HUMAN)
     env.reset()
 
-    # Use robot policy for agent
-    robotic_agent = Robot(board=env.board, arm=env.board.agent_arm, config=env.config)
+    # Use robot policy with agent priorities
+    robotic_agent = Robot(
+        board=env.board,
+        arm=env.board.agent_arm,
+        color_priorities=get_color_priorities(env.config.agent_color_rewards),
+        shape_priorities=get_shape_priorities(env.config.agent_shape_rewards),
+    )
 
     ep_over: bool = False
     while not ep_over:

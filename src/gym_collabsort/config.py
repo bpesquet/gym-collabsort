@@ -56,7 +56,7 @@ class Config:
         return self.object_size + self.dropped_object_margin
 
     # Title of the main window
-    window_title = "Gym_collabsort - Collaborative sorting task"
+    window_title = "gym-collabsort - Collaborative sorting task"
 
     # Size (height & width) of an object in pixels
     object_size: int = 50
@@ -91,8 +91,30 @@ class Config:
     # Possible shapes for board objects
     object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
 
-    # Ordered list of robot color priorities for selecting objects to pick
-    robor_color_priorities: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
+    # Robot rewards linked to dropped objects' colors
+    robot_color_rewards = {
+        Color.RED: 5,
+        Color.YELLOW: 0,
+        Color.BLUE: -5,
+    }
 
-    # Ordered list of robot shape priorities for selecting objects to pick
-    robor_shape_priorities: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
+    # Robot rewards linked to dropped objects' shapes
+    robot_shape_rewards = {
+        Shape.SQUARE: 2,
+        Shape.CIRCLE: 1,
+        Shape.TRIANGLE: 0,
+    }
+
+    # Agent rewards linked to dropped objects' colors
+    agent_color_rewards = {
+        Color.BLUE: 5,
+        Color.RED: 0,
+        Color.YELLOW: -5,
+    }
+
+    # Agent rewards linked to dropped objects' shapes
+    agent_shape_rewards = {
+        Shape.CIRCLE: 1,
+        Shape.SQUARE: 1,
+        Shape.TRIANGLE: 0,
+    }

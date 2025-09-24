@@ -14,7 +14,7 @@ from ..board.arm import Arm
 from ..board.board import Board
 from ..board.object import Color, Object, Shape
 from ..config import Config
-from .robot import Robot
+from .robot import Robot, get_color_priorities, get_shape_priorities
 
 
 class RenderMode(StrEnum):
@@ -52,8 +52,16 @@ class CollabSortEnv(gym.Env):
         self.window = None
         self.clock = None
 
+        # Create board
         self.board = Board(config=self.config)
-        self.robot = Robot(board=self.board, arm=self.board.robot_arm, config=config)
+
+        # Create robot
+        self.robot = Robot(
+            board=self.board,
+            arm=self.board.robot_arm,
+            color_priorities=get_color_priorities(config.robot_color_rewards),
+            shape_priorities=get_shape_priorities(config.robot_shape_rewards),
+        )
 
         # Define action format: coordinates of target
         self.action_space = self._get_coords_space()
@@ -127,14 +135,26 @@ class CollabSortEnv(gym.Env):
             "shape": object.shape,
         }
 
-    def step(self, action: tuple[int, int]) -> tuple[dict, int, bool, bool, dict]:
-        reward = -0.1
+    def step(self, action: tuple[int, int]) -> tuple[dict, float, bool, bool, dict]:
+        # Init reward with a small time penalty
+        reward: float = -0.1
 
         # Handle robot action
-        self._handle_action(
+        dropped_object = self._handle_action(
             arm=self.board.robot_arm,
             action=self.robot.choose_action(),
             other_arm=self.board.agent_arm,
+        )
+
+        # Compute robot reward
+        reward += (
+            self._compute_reward(
+                object=dropped_object,
+                color_rewards=self.config.robot_color_rewards,
+                shape_rewards=self.config.robot_shape_rewards,
+            )
+            if dropped_object is not None
+            else 0
         )
 
         # Handle agent action
@@ -142,12 +162,16 @@ class CollabSortEnv(gym.Env):
             arm=self.board.agent_arm, action=action, other_arm=self.board.robot_arm
         )
 
-        # Compute reward
-        if dropped_object is not None:
-            if dropped_object.color == Color.BLUE:
-                reward = 2
-            else:
-                reward = -2
+        # Compute agent reward
+        reward += (
+            self._compute_reward(
+                object=dropped_object,
+                color_rewards=self.config.agent_color_rewards,
+                shape_rewards=self.config.agent_shape_rewards,
+            )
+            if dropped_object is not None
+            else 0
+        )
 
         observation = self._get_obs()
 
@@ -168,6 +192,16 @@ class CollabSortEnv(gym.Env):
         return arm.move(
             board=self.board, target_coords=target_coords, other_arm=other_arm
         )
+
+    def _compute_reward(
+        self,
+        object: Object,
+        color_rewards: dict[Color, float],
+        shape_rewards: dict[Shape, float],
+    ) -> float:
+        """Compute the reward for a dropped object"""
+
+        return color_rewards[object.color] + shape_rewards[object.shape]
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:

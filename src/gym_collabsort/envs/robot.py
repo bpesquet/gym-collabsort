@@ -4,16 +4,47 @@ Implementation of robot policy.
 
 from ..board.arm import Arm
 from ..board.board import Board
-from ..config import Config
+from ..config import Color, Shape
+
+
+def get_color_priorities(color_rewards: dict[Color, float]) -> list[Color]:
+    """Return the ordered list of color priorities based on rewards"""
+
+    # Sort colors by descending reward
+    return list(
+        color
+        for color, _ in sorted(
+            color_rewards.items(), key=lambda item: item[1], reverse=True
+        )
+    )
+
+
+def get_shape_priorities(shape_rewards: dict[Shape, float]) -> list[Shape]:
+    """Return the ordered list of shape priorities based on rewards"""
+
+    # Sort shapes by descending reward
+    return list(
+        shape
+        for shape, _ in sorted(
+            shape_rewards.items(), key=lambda item: item[1], reverse=True
+        )
+    )
 
 
 class Robot:
-    def __init__(self, board: Board, arm: Arm, config: Config) -> None:
+    def __init__(
+        self,
+        board: Board,
+        arm: Arm,
+        color_priorities: tuple[Color],
+        shape_priorities: tuple[Shape],
+    ) -> None:
         self.board = board
         self.arm = arm
-        self.config = config
+        self.color_priorities = color_priorities
+        self.shape_priorities = shape_priorities
 
-        # Coordinates of current target
+        # Coordinates of current target (an object or the arm base)
         self.target_coords: tuple[int, int] = None
 
     def choose_action(self) -> tuple[int, int]:
@@ -34,10 +65,10 @@ class Robot:
             self.target_coords = self.arm.base.coords
 
         if self.target_coords is None:
-            # Search for objects compatible with robot picking priorities
+            # Search for objects compatible with picking priorities
             compatible_objects = self.board.get_compatible_objects(
-                colors=self.config.robor_color_priorities,
-                shapes=self.config.robor_shape_priorities,
+                colors=self.color_priorities,
+                shapes=self.shape_priorities,
             )
             if len(compatible_objects) > 0:
                 # Aim for the first compatible object
