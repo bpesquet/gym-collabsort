@@ -5,6 +5,7 @@ Unit tests for environment.
 import gymnasium as gym
 import pygame
 
+import gym_collabsort
 from gym_collabsort.envs.env import CollabSortEnv, RenderMode
 from gym_collabsort.envs.robot import Robot, get_color_priorities, get_shape_priorities
 
@@ -14,6 +15,9 @@ def test_registration() -> None:
 
     env = gym.make("CollabSort-v0")
     assert env is not None
+
+    # Check that version is not empty
+    assert gym_collabsort.__version__
 
 
 def test_reset() -> None:
