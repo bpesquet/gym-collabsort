@@ -4,7 +4,7 @@ dynamic = ["version"]  # Use dynamic versioning
 description = "A Gymnasium environment for training agents on a collaborative sorting task"
 license = "MIT"
 license-files = ["LICENSE"]
-readme = "README.md"
+readme = "README_PACKAGE.md"  # Project description on PyPI
 authors = [
     { name = "Baptiste Pesquet", email = "bpesquet@gmail.com" }
 ]
