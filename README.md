@@ -2,7 +2,7 @@
 
 [![Dynamic TOML Badge: Python](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbpesquet%2Fgym-collabsort%2Frefs%2Fheads%2Fmain%2Fpyproject.toml&query=%24.project.requires-python&label=Python&labelColor=%233776AB&color=black)](pyproject.toml)
 [![GitHub Actions workflow status](https://img.shields.io/github/actions/workflow/status/bpesquet/mlcourse/ci.yaml)](https://github.com/bpesquet/gym-collabsort/actions)
-[![PyPI Version](https://img.shields.io/pypi/v/gym-collabsort.svg)](https://pypi.org/project/gym-collabsort)
+[![PyPI Version](https://img.shields.io/pypi/v/gym-collabsort)](https://pypi.org/project/gym-collabsort)
 
 A [Gymnasium](https://gymnasium.farama.org/) environment for training agents on a collaborative sorting task.
 

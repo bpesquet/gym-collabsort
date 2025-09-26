@@ -10,7 +10,7 @@ from gymnasium.envs.registration import register
 register(id="CollabSort-v0", entry_point="gym_collabsort.envs.env:CollabSortEnv")
 
 
-# Make the version accessible within your package
+# Make the version accessible within the package
 try:
     __version__ = importlib.metadata.version(__name__)
 except importlib.metadata.PackageNotFoundError:

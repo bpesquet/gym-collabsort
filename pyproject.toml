@@ -1,6 +1,8 @@
 [project]
 name = "gym-collabsort"
-dynamic = ["version"]  # Use dynamic versioning
+# Use dynamic versioning.
+# See https://pydevtools.com/handbook/how-to/how-to-add-dynamic-versioning-to-uv-projects/ for details
+dynamic = ["version"]
 description = "A Gymnasium environment for training agents on a collaborative sorting task"
 license = "MIT"
 license-files = ["LICENSE"]
