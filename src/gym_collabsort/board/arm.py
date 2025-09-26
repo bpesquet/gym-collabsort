@@ -177,7 +177,7 @@ class Arm:
                 if self.picked_object is None:
                     # No picked object: check if the arm can pick an object at current location
                     obj = board.get_object_at(coords=self.claw.coords)
-                    if obj:
+                    if obj is not None:
                         # Pick object at current location
                         self._picked_object.add(obj)
 

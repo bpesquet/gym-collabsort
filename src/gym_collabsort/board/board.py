@@ -96,7 +96,13 @@ class Board:
     def get_compatible_objects(
         self, colors: tuple[Color], shapes: tuple[Shape]
     ) -> list[Object]:
-        """Get the ordered list of board objects with listed colors and shapes"""
+        """
+        Get the ordered list of board objects with listed colors and shapes.
+
+        Desired colors and shapes are given by descending order of priority.
+        Selected objects (if any) are returned by descending order or compatibility.
+        Color is used as first selection criterion, shape as second.
+        """
 
         shape_compatible_objects: list[Object] = []
         compatible_objects: list[Object] = []
@@ -109,11 +115,15 @@ class Board:
             and obj != self.robot_arm.picked_object
         ]
 
+        # Select available object that are shape-compatible.
+        # They are sorted by descending order of shape priority
         for shape in shapes:
             for obj in available_objects:
                 if obj.shape == shape:
                     shape_compatible_objects.append(obj)
 
+        # Select shape-compatible objects that are also color-compatible.
+        # They are sorted by descending order of color priority
         for color in colors:
             for obj in shape_compatible_objects:
                 if obj.color == color:
