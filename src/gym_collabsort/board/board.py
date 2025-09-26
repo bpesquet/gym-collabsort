@@ -67,7 +67,7 @@ class Board:
                     high=self.config.board_height - self.config.object_size // 2,
                 ),
             )
-            # Randomly generate object properties
+            # Randomly generate object attributes
             obj_color = rng.choice(a=self.config.object_colors)
             obj_shape = rng.choice(a=self.config.object_shapes)
 

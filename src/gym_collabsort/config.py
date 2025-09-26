@@ -17,9 +17,9 @@ class Color(StrEnum):
 class Shape(Enum):
     """Possible shapes for an object"""
 
-    SQUARE = 1
-    CIRCLE = 2
-    TRIANGLE = 3
+    SQUARE = 0
+    CIRCLE = 1
+    TRIANGLE = 2
 
 
 @dataclass

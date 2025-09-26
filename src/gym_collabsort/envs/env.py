@@ -26,7 +26,10 @@ class RenderMode(StrEnum):
 
 
 class CollabSortEnv(gym.Env):
-    """Gym multiagent environment implementing a collaborative sorting task"""
+    """Gym environment implementing a collaborative sorting task"""
+
+    # Supported render modes
+    metadata = {"render_modes": [rm.value for rm in RenderMode]}
 
     def __init__(
         self,
@@ -39,7 +42,9 @@ class CollabSortEnv(gym.Env):
             # Use default configuration values
             config = Config()
 
+        assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
+
         self.config = config
 
         """
@@ -69,20 +74,18 @@ class CollabSortEnv(gym.Env):
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
             {
-                "coords": self._get_coords_space(),
-                "objects": gym.spaces.Tuple(
-                    tuple(
-                        gym.spaces.Dict(
-                            {
-                                "coords": self._get_coords_space(),
-                                # max_length is the maximum number of characters in a color
-                                "color": gym.spaces.Text(max_length=10),
-                                "shape": gym.spaces.Discrete(n=len(Shape)),
-                            }
-                        )
-                        for _ in range(self.config.n_objects)
+                "self": self._get_coords_space(),
+                "objects": gym.spaces.Sequence(
+                    gym.spaces.Dict(
+                        {
+                            "coords": self._get_coords_space(),
+                            # max_length is the maximum number of characters in a color
+                            "color": gym.spaces.Text(max_length=10),
+                            "shape": gym.spaces.Discrete(n=len(Shape)),
+                        }
                     )
                 ),
+                "robot": self._get_coords_space(),
             }
         )
 
@@ -112,27 +115,41 @@ class CollabSortEnv(gym.Env):
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
 
-        return (self._get_obs(), {})
+        return (self._get_obs(), self._get_info())
 
     def _get_obs(self) -> dict:
-        """Return an observation given to the agent"""
+        """
+        Return an observation given to the agent.
 
-        # An observation is a dictionary containing:
-        # - the coordinates of agent arm claw
-        # - properties for all objects
-        objects = [self._get_object_props(object=obj) for obj in self.board.objects]
+        An observation is a dictionary containing:
+        - the coordinates of agent arm claw
+        - the properties of all objects
+        - the coordinates of robot arm claw
+        """
+
+        objects = tuple(
+            self._get_object_props(object=obj) for obj in self.board.objects
+        )
+
         return {
-            "coords": None,  # TODO
+            "self": np.array(self.board.agent_arm.claw.coords),
             "objects": objects,
+            "robot": np.array(self.board.robot_arm.claw.coords),
         }
+
+    def _get_info(self) -> dict:
+        """Return additional information given to the agent"""
+
+        # No additional info
+        return {}
 
     def _get_object_props(self, object: Object) -> dict:
         """Return properties for a aspecific object"""
 
         return {
-            "coords": object.coords,
+            "coords": np.array(object.coords),
             "color": object.color,
-            "shape": object.shape,
+            "shape": object.shape.value,
         }
 
     def step(self, action: tuple[int, int]) -> tuple[dict, float, bool, bool, dict]:
@@ -174,6 +191,7 @@ class CollabSortEnv(gym.Env):
         )
 
         observation = self._get_obs()
+        info = self._get_info()
 
         # Episode is terminated when all objects have been picked up
         terminated = len(self.board.objects) == 0
@@ -181,7 +199,7 @@ class CollabSortEnv(gym.Env):
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
 
-        return observation, reward, terminated, False, {}
+        return observation, reward, terminated, False, info
 
     def _handle_action(
         self, arm: Arm, action: tuple[int, int], other_arm: Arm

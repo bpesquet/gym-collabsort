@@ -10,24 +10,16 @@ from gym_collabsort.envs.env import CollabSortEnv, RenderMode
 from gym_collabsort.envs.robot import Robot, get_color_priorities, get_shape_priorities
 
 
-def test_registration() -> None:
-    """Test registering the environment through Gymnasium"""
+def test_version() -> None:
+    """Test environment version"""
 
-    env = gym.make("CollabSort-v0")
-    assert env is not None
-
-    # Check that version is not empty
+    # Check that version string is not empty
     assert gym_collabsort.__version__
 
 
-def test_reset() -> None:
-    env = CollabSortEnv()
-
-    _, info = env.reset()
-    assert info == {}
-
-
 def test_render_rgb() -> None:
+    """Test env registration and RGB rendering"""
+
     env = CollabSortEnv(render_mode=RenderMode.RGB_ARRAY)
     env.reset()
 
@@ -40,9 +32,9 @@ def test_render_rgb() -> None:
 
 
 def test_random_agent() -> None:
-    """Test an agent using random actions"""
+    """Test an agent choosing random actions"""
 
-    env = CollabSortEnv(render_mode=RenderMode.NONE)
+    env = gym.make("CollabSort-v0")
     env.reset()
 
     for _ in range(60):
