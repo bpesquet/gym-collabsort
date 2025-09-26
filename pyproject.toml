@@ -3,17 +3,21 @@ name = "gym-collabsort"
 dynamic = ["version"]  # Use dynamic versioning
 description = "A Gymnasium environment for training agents on a collaborative sorting task"
 license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 authors = [
     { name = "Baptiste Pesquet", email = "bpesquet@gmail.com" }
 ]
-repository = "https://github.com/bpesquet/gym-collabsort"
 keywords = ["gym", "gymnasium", "rl", "collaboration"]
 requires-python = ">=3.12"
 dependencies = [
     "gymnasium>=1.2.0",
     "pygame>=2.6.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/bpesquet/gym-collabsort"
+Repository = "https://github.com/bpesquet/gym-collabsort.git"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]
