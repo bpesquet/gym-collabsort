@@ -2,8 +2,18 @@
 Unit tests for environment.
 """
 
+import gymnasium as gym
+import pygame
+
 from gym_collabsort.envs.env import CollabSortEnv, RenderMode
 from gym_collabsort.envs.robot import Robot, get_color_priorities, get_shape_priorities
+
+
+def test_registration() -> None:
+    """Test registering the environment through Gymnasium"""
+
+    env = gym.make("CollabSort-v0")
+    assert env is not None
 
 
 def test_reset() -> None:
@@ -26,6 +36,8 @@ def test_render_rgb() -> None:
 
 
 def test_random_agent() -> None:
+    """Test an agent using random actions"""
+
     env = CollabSortEnv(render_mode=RenderMode.NONE)
     env.reset()
 
@@ -35,11 +47,13 @@ def test_random_agent() -> None:
     env.close()
 
 
-def test_robot_vs_robot() -> None:
+def test_robotic_agent(pause_at_end: bool = False) -> None:
+    """Test an agent using the same behavior as the robot, but with specific rewards"""
+
     env = CollabSortEnv(render_mode=RenderMode.HUMAN)
     env.reset()
 
-    # Use robot policy with agent priorities
+    # Use robot policy with agent rewards
     robotic_agent = Robot(
         board=env.board,
         arm=env.board.agent_arm,
@@ -52,4 +66,14 @@ def test_robot_vs_robot() -> None:
         _, _, terminated, trucanted, _ = env.step(action=robotic_agent.choose_action())
         ep_over = terminated or trucanted
 
+    if pause_at_end:
+        # Wait for any user input to exit enrironment
+        pygame.event.clear()
+        _ = pygame.event.wait()
+
     env.close()
+
+
+if __name__ == "__main__":
+    # Standalone execution with pause at end
+    test_robotic_agent(pause_at_end=True)
