@@ -6,6 +6,8 @@
 
 A [Gymnasium](https://gymnasium.farama.org/) environment for training agents on a collaborative sorting task.
 
+![CollabSort demo](images/collabsort_demo.gif)
+
 ## Development notes
 
 ### Toolchain
