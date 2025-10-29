@@ -12,13 +12,13 @@ class Object(Sprite):
 
     def __init__(
         self,
-        coords: Vector2,
+        location: Vector2,
         config: Config,
         color: Color,
         shape: Shape,
     ) -> None:
         super().__init__(
-            coords=coords,
+            location=location,
             size=config.object_size,
             config=config,
             transparent_background=True,

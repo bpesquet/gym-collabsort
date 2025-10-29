@@ -69,27 +69,27 @@ class CollabSortEnv(gym.Env):
         )
 
         # Define action format: coordinates of target
-        self.action_space = self._get_coords_space()
+        self.action_space = self._get_location_space()
 
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
             {
-                "self": self._get_coords_space(),
+                "self": self._get_location_space(),
                 "objects": gym.spaces.Sequence(
                     gym.spaces.Dict(
                         {
-                            "coords": self._get_coords_space(),
+                            "location": self._get_location_space(),
                             # max_length is the maximum number of characters in a color
                             "color": gym.spaces.Text(max_length=10),
                             "shape": gym.spaces.Discrete(n=len(Shape)),
                         }
                     )
                 ),
-                "robot": self._get_coords_space(),
+                "robot": self._get_location_space(),
             }
         )
 
-    def _get_coords_space(self) -> gym.spaces.Space:
+    def _get_location_space(self) -> gym.spaces.Space:
         """Helper method to create a Box space for the 2D coordinates of a board element"""
 
         return gym.spaces.Box(
@@ -132,9 +132,9 @@ class CollabSortEnv(gym.Env):
         )
 
         return {
-            "self": np.array(self.board.agent_arm.claw.coords),
+            "self": np.array(self.board.agent_arm.claw.location),
             "objects": objects,
-            "robot": np.array(self.board.robot_arm.claw.coords),
+            "robot": np.array(self.board.robot_arm.claw.location),
         }
 
     def _get_info(self) -> dict:
@@ -147,7 +147,7 @@ class CollabSortEnv(gym.Env):
         """Return properties for a aspecific object"""
 
         return {
-            "coords": np.array(object.coords),
+            "location": np.array(object.location),
             "color": object.color,
             "shape": object.shape.value,
         }
@@ -206,9 +206,9 @@ class CollabSortEnv(gym.Env):
     ) -> Object | None:
         """Handle an action for agent or robot arm"""
 
-        target_coords = Vector2(action[0], action[1])
+        target_location = Vector2(action[0], action[1])
         return arm.move(
-            board=self.board, target_coords=target_coords, other_arm=other_arm
+            board=self.board, target_location=target_location, other_arm=other_arm
         )
 
     def _compute_reward(

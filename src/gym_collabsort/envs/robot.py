@@ -45,26 +45,26 @@ class Robot:
         self.shape_priorities = shape_priorities
 
         # Coordinates of current target (an object or the arm base)
-        self.target_coords: tuple[int, int] = None
+        self.target_location: tuple[int, int] = None
 
     def choose_action(self) -> tuple[int, int]:
         """Return the coordinates of the chosen target"""
 
         if self.arm.is_retracted():
             # Reset target when arm is fully retracted
-            self.target_coords = None
+            self.target_location = None
         elif self.arm.collision_penalty or self.arm.picked_object is not None:
             # Retract arm towards its base after a collision or if a object has been picked
-            self.target_coords = self.arm.base.coords
+            self.target_location = self.arm.base.location
         elif (
-            self.target_coords is not None
-            and self.board.get_object_at(self.target_coords) is None
+            self.target_location is not None
+            and self.board.get_object_at(self.target_location) is None
         ):
             # Previously targeted object is no longer there (probably picked by the other arm).
             # Retract arm towards its base
-            self.target_coords = self.arm.base.coords
+            self.target_location = self.arm.base.location
 
-        if self.target_coords is None:
+        if self.target_location is None:
             # Search for objects compatible with picking priorities
             compatible_objects = self.board.get_compatible_objects(
                 colors=self.color_priorities,
@@ -72,11 +72,11 @@ class Robot:
             )
             if len(compatible_objects) > 0:
                 # Aim for the first compatible object
-                self.target_coords = compatible_objects[0].coords
+                self.target_location = compatible_objects[0].location
 
-        if self.target_coords is not None:
+        if self.target_location is not None:
             # Move arm towards target
-            return self.target_coords
+            return self.target_location
         else:
             # No possible target => stay still
-            return self.arm.claw.coords
+            return self.arm.claw.location

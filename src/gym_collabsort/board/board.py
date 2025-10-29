@@ -30,14 +30,14 @@ class Board:
 
         # Create agent and robot arms
         self.agent_arm = Arm(
-            coords=Vector2(
+            location=Vector2(
                 x=self.config.board_width // 2,
                 y=self.config.board_height - self.config.arm_base_size // 2,
             ),
             config=config,
         )
         self.robot_arm = Arm(
-            coords=Vector2(
+            location=Vector2(
                 x=self.config.board_width // 2,
                 y=self.config.arm_base_size // 2,
             ),
@@ -57,7 +57,7 @@ class Board:
         remaining_objects = self.config.n_objects
         while remaining_objects > 0:
             # Randoml generate coordinates compatible with board dimensions
-            obj_coords = Vector2(
+            obj_location = Vector2(
                 x=rng.integers(
                     low=self.config.object_size // 2,
                     high=self.config.board_width - self.config.object_size // 2,
@@ -72,7 +72,7 @@ class Board:
             obj_shape = rng.choice(a=self.config.object_shapes)
 
             new_obj = Object(
-                coords=obj_coords,
+                location=obj_location,
                 color=obj_color,
                 shape=obj_shape,
                 config=self.config,
@@ -86,11 +86,11 @@ class Board:
                 self.objects.add(new_obj)
                 remaining_objects -= 1
 
-    def get_object_at(self, coords: tuple[int, int]) -> Object | None:
+    def get_object_at(self, location: tuple[int, int]) -> Object | None:
         """Return the object at a given location, if any"""
 
         for obj in self.objects:
-            if obj.coords == coords:
+            if obj.location == location:
                 return obj
 
     def get_compatible_objects(
@@ -151,12 +151,12 @@ class Board:
         # An object just dropped by the agent arm must be moved below the board
         if self.agent_arm._dropped_object:
             # Move dropped object to line above the board
-            self.agent_arm.dropped_object.coords_abs = (
+            self.agent_arm.dropped_object.location_abs = (
                 len(self.agent_dropped_objects)
                 * (self.config.object_size + self.config.dropped_object_margin)
                 + self.config.object_size // 2
                 + self.config.dropped_object_margin,
-                self.agent_arm.base.coords_abs[1] + self.config.y_offset,
+                self.agent_arm.base.location_abs[1] + self.config.y_offset,
             )
             # Update objects lists
             self.agent_dropped_objects.add(self.agent_arm.dropped_object)
@@ -166,12 +166,12 @@ class Board:
         # An object just dropped by the robot arm must be moved above the board
         if self.robot_arm._dropped_object:
             # Move dropped object to line below the board
-            self.robot_arm.dropped_object.coords_abs = (
+            self.robot_arm.dropped_object.location_abs = (
                 len(self.robot_dropped_objects)
                 * (self.config.object_size + self.config.dropped_object_margin)
                 + self.config.object_size // 2
                 + self.config.dropped_object_margin,
-                self.robot_arm.base.coords_abs[1] - self.config.y_offset,
+                self.robot_arm.base.location_abs[1] - self.config.y_offset,
             )
             # Update objects lists
             self.robot_dropped_objects.add(self.robot_arm.dropped_object)
@@ -195,8 +195,8 @@ class Board:
         pygame.draw.line(
             surface=self.canvas,
             color="black",
-            start_pos=self.agent_arm.base.coords_abs,
-            end_pos=self.agent_arm.claw.coords_abs,
+            start_pos=self.agent_arm.base.location_abs,
+            end_pos=self.agent_arm.claw.location_abs,
             width=self.config.arm_line_width,
         )
 
@@ -206,8 +206,8 @@ class Board:
         pygame.draw.line(
             surface=self.canvas,
             color="black",
-            start_pos=self.robot_arm.base.coords_abs,
-            end_pos=self.robot_arm.claw.coords_abs,
+            start_pos=self.robot_arm.base.location_abs,
+            end_pos=self.robot_arm.claw.location_abs,
             width=self.config.arm_line_width,
         )
 

@@ -23,9 +23,9 @@ if TYPE_CHECKING:
 class ArmBase(Sprite):
     """Base of the agent or robot arm"""
 
-    def __init__(self, coords: Vector2, config: Config) -> None:
+    def __init__(self, location: Vector2, config: Config) -> None:
         super().__init__(
-            coords=coords,
+            location=location,
             size=config.arm_base_size,
             config=config,
         )
@@ -54,9 +54,9 @@ class ArmBase(Sprite):
 class ArmClaw(Sprite):
     """Claw of the agent or robot arm"""
 
-    def __init__(self, coords: Vector2, config: Config) -> None:
+    def __init__(self, location: Vector2, config: Config) -> None:
         super().__init__(
-            coords=coords,
+            location=location,
             size=config.arm_claw_size,
             config=config,
             transparent_background=True,
@@ -71,34 +71,36 @@ class ArmClaw(Sprite):
             radius=config.arm_claw_size // 2,
         )
 
-    def move_towards(self, target_coords: Vector2, speed_penalty: bool = False) -> None:
+    def move_towards(
+        self, target_location: Vector2, speed_penalty: bool = False
+    ) -> None:
         """Move the claw towards a specific target"""
 
         # Compute new location, including speed penalty if any
-        coords = Vector2(self.coords)
+        location = Vector2(self.location)
         max_distance = self.config.arm_claw_speed
         if speed_penalty:
             max_distance /= self.config.collision_speed_reduction_factor
 
         # Move claw to new location
-        coords.move_towards_ip(target_coords, max_distance)
-        self.coords = coords
+        location.move_towards_ip(target_location, max_distance)
+        self.location = location
 
 
 class Arm:
-    def __init__(self, coords: Vector2, config: Config) -> None:
+    def __init__(self, location: Vector2, config: Config) -> None:
         self.config = config
 
         self.collision_penalty: bool = False
 
         # Create arm base
         self._base: GroupSingle[ArmBase] = GroupSingle(
-            ArmBase(coords=coords, config=self.config)
+            ArmBase(location=location, config=self.config)
         )
 
         # Create arm claw
         self._claw: GroupSingle[ArmClaw] = GroupSingle(
-            ArmClaw(coords=coords, config=self.config)
+            ArmClaw(location=location, config=self.config)
         )
 
         # Create empty single sprite groups for picked and dropped objects.
@@ -144,26 +146,26 @@ class Arm:
         collide_claw: bool = self.collide_sprite(sprite=arm.claw)
         collide_base: bool = self.collide_sprite(sprite=arm.base)
         collide_line: tuple = self.claw.rect.clipline(
-            first_coordinate=arm.base.coords_abs,
-            second_coordinate=arm.claw.coords_abs,
+            first_coordinate=arm.base.location_abs,
+            second_coordinate=arm.claw.location_abs,
         )
 
         return collide_claw or collide_base or collide_line
 
     def move(
-        self, board: Board, target_coords: Vector2, other_arm: Arm
+        self, board: Board, target_location: Vector2, other_arm: Arm
     ) -> Object | None:
         """Move arm claw towards target coordinates, returning the dropped object if any"""
 
-        if target_coords != self.claw.coords:
+        if target_location != self.claw.location:
             # Move claw towards target if different from current location
             self.claw.move_towards(
-                target_coords=target_coords, speed_penalty=self.collision_penalty
+                target_location=target_location, speed_penalty=self.collision_penalty
             )
 
             if self.picked_object is not None:
                 # Move the picked object alongside claw
-                self.picked_object.coords = self.claw.coords
+                self.picked_object.location = self.claw.location
 
             if self.collide_arm(arm=other_arm):
                 # Drop any previously picked objects
@@ -176,7 +178,7 @@ class Arm:
             else:
                 if self.picked_object is None:
                     # No picked object: check if the arm can pick an object at current location
-                    obj = board.get_object_at(coords=self.claw.coords)
+                    obj = board.get_object_at(location=self.claw.location)
                     if obj is not None:
                         # Pick object at current location
                         self._picked_object.add(obj)
@@ -195,4 +197,4 @@ class Arm:
     def is_retracted(self) -> bool:
         """Check if the arm is entirely retracted (claw has returned to base)"""
 
-        return self.claw.coords == self.base.coords
+        return self.claw.location == self.base.location
