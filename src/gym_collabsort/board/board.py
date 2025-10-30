@@ -48,8 +48,8 @@ class Board:
             config=config,
         )
 
-        self.agent_dropped_objects: Group[Object] = Group()
-        self.robot_dropped_objects: Group[Object] = Group()
+        self.agent_placed_objects: Group[Object] = Group()
+        self.robot_placed_objects: Group[Object] = Group()
 
     def add_object(
         self,
@@ -151,7 +151,7 @@ class Board:
         self.canvas.fill(self.config.background_color)
 
         # Draw board limits.
-        # Y is offsetted to take into account the dropped objects line above the board
+        # Y is offsetted to take into account the placed objects line above the board
         for y in (0, self.config.board_height):
             pygame.draw.line(
                 surface=self.canvas,
@@ -164,39 +164,39 @@ class Board:
                 width=self.config.scorebar_line_thickness,
             )
 
-        # An object just dropped by the agent arm must be moved below the board
-        if self.agent_arm._dropped_object:
-            # Move dropped object to line above the board
-            self.agent_arm.dropped_object.location_abs = (
-                len(self.agent_dropped_objects)
+        # An object just placed by the agent arm must be moved below the board
+        if self.agent_arm._placed_object:
+            # Move placed object to line above the board
+            self.agent_arm.placed_object_object.location_abs = (
+                len(self.agent_placed_objects)
                 * (self.config.board_cell_size + self.config.scorebar_margin)
                 + self.config.board_cell_size // 2
                 + self.config.scorebar_margin,
                 self.agent_arm.base.location_abs[1] + self.config.scorebar_height,
             )
             # Update objects lists
-            self.agent_dropped_objects.add(self.agent_arm.dropped_object)
-            self.objects.remove(self.agent_arm.dropped_object)
-            self.agent_arm._dropped_object.empty()
+            self.agent_placed_objects.add(self.agent_arm.placed_object_object)
+            self.objects.remove(self.agent_arm.placed_object)
+            self.agent_arm._placed_object.empty()
 
-        # An object just dropped by the robot arm must be moved above the board
-        if self.robot_arm._dropped_object:
-            # Move dropped object to line below the board
-            self.robot_arm.dropped_object.location_abs = (
-                len(self.robot_dropped_objects)
+        # An object just placed by the robot arm must be moved above the board
+        if self.robot_arm._placed_object:
+            # Move placed object to line below the board
+            self.robot_arm.placed_object_object.location_abs = (
+                len(self.robot_placed_objects)
                 * (self.config.board_cell_size + self.config.scorebar_margin)
                 + self.config.board_cell_size // 2
                 + self.config.scorebar_margin,
                 self.robot_arm.base.location_abs[1] - self.config.scorebar_height,
             )
             # Update objects lists
-            self.robot_dropped_objects.add(self.robot_arm.dropped_object)
-            self.objects.remove(self.robot_arm.dropped_object)
-            self.robot_arm._dropped_object.empty()
+            self.robot_placed_objects.add(self.robot_arm.placed_object)
+            self.objects.remove(self.robot_arm.placed_object)
+            self.robot_arm._placed_object.empty()
 
-        # Draw dropped objects for each arm
-        self.agent_dropped_objects.draw(surface=self.canvas)
-        self.robot_dropped_objects.draw(surface=self.canvas)
+        # Draw placed objects for each arm
+        self.agent_placed_objects.draw(surface=self.canvas)
+        self.robot_placed_objects.draw(surface=self.canvas)
 
         # Draw bases for each arm
         self.agent_arm._base.draw(surface=self.canvas)

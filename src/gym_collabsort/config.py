@@ -128,28 +128,28 @@ class Config:
     # Time penalty used as based reward
     reward__time_penalty: float = -0.1
 
-    # Robot rewards linked to dropped objects' colors
+    # Robot rewards linked to placed objects' colors
     robot_color_rewards = {
         Color.RED: 5,
         Color.YELLOW: 0,
         Color.BLUE: -5,
     }
 
-    # Robot rewards linked to dropped objects' shapes
+    # Robot rewards linked to placed objects' shapes
     robot_shape_rewards = {
         Shape.SQUARE: 2,
         Shape.CIRCLE: 1,
         Shape.TRIANGLE: 0,
     }
 
-    # Agent rewards linked to dropped objects' colors
+    # Agent rewards linked to placed objects' colors
     agent_color_rewards = {
         Color.BLUE: 5,
         Color.RED: 0,
         Color.YELLOW: -5,
     }
 
-    # Agent rewards linked to dropped objects' shapes
+    # Agent rewards linked to placed objects' shapes
     agent_shape_rewards = {
         Shape.CIRCLE: 1,
         Shape.SQUARE: 1,

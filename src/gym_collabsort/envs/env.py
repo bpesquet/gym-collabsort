@@ -159,7 +159,7 @@ class CollabSortEnv(gym.Env):
         self.board.animate()
 
         # Handle robot action
-        dropped_object = self._handle_action(
+        placed_object = self._handle_action(
             arm=self.board.robot_arm,
             action=self.robot.choose_action(),
             other_arm=self.board.agent_arm,
@@ -168,27 +168,27 @@ class CollabSortEnv(gym.Env):
         # Compute robot reward
         reward += (
             self._compute_reward(
-                object=dropped_object,
+                object=placed_object,
                 color_rewards=self.config.robot_color_rewards,
                 shape_rewards=self.config.robot_shape_rewards,
             )
-            if dropped_object is not None
+            if placed_object is not None
             else 0
         )
 
         # Handle agent action
-        dropped_object = self._handle_action(
+        placed_object = self._handle_action(
             arm=self.board.agent_arm, action=action, other_arm=self.board.robot_arm
         )
 
         # Compute agent reward
         reward += (
             self._compute_reward(
-                object=dropped_object,
+                object=placed_object,
                 color_rewards=self.config.agent_color_rewards,
                 shape_rewards=self.config.agent_shape_rewards,
             )
-            if dropped_object is not None
+            if placed_object is not None
             else 0
         )
 
@@ -219,7 +219,7 @@ class CollabSortEnv(gym.Env):
         color_rewards: dict[Color, float],
         shape_rewards: dict[Shape, float],
     ) -> float:
-        """Compute the reward for a dropped object"""
+        """Compute the reward for a placed object"""
 
         return color_rewards[object.color] + shape_rewards[object.shape]
 

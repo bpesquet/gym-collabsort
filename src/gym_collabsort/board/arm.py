@@ -103,35 +103,35 @@ class Arm:
             Gripper(location=location, config=self.config)
         )
 
-        # Create empty single sprite groups for picked and dropped objects.
-        # They are used to test if arm has picked or dropped an object
+        # Create empty single sprite groups for picked and placed objects.
+        # They are used to test if arm has picked or placed an object
         # without needing to copy Object instances (which is not supported by pygame)
         self._picked_object: GroupSingle[Object] = GroupSingle()
-        self._dropped_object: GroupSingle[Object] = GroupSingle()
+        self._placed_object: GroupSingle[Object] = GroupSingle()
 
     @property
     def base(self) -> Base:
-        """Return the arm base as a sprite"""
+        """Return the arm base"""
 
         return self._base.sprite
 
     @property
     def gripper(self) -> Gripper:
-        """Return the arm gripper as a sprite"""
+        """Return the arm gripper"""
 
         return self._gripper.sprite
 
     @property
     def picked_object(self) -> Object | None:
-        """Return the picked object (if any) as a sprite"""
+        """Return the picked object (if any)"""
 
         return self._picked_object.sprite
 
     @property
-    def dropped_object(self) -> Object | None:
-        """Return the dropped object (if any) as a sprite"""
+    def placed_object(self) -> Object | None:
+        """Return the placed object (if any)"""
 
-        return self._dropped_object.sprite
+        return self._placed_object.sprite
 
     def collide_sprite(self, sprite: Sprite) -> bool:
         """Check if the arm collides with a sprite"""
@@ -155,7 +155,7 @@ class Arm:
     def move(
         self, board: Board, target_location: Vector2, other_arm: Arm
     ) -> Object | None:
-        """Move arm gripper towards target location, returning the dropped object if any"""
+        """Move arm gripper towards target location, returning the placed object if any"""
 
         if target_location != self.gripper.location:
             # Move gripper towards target if different from current location
@@ -189,10 +189,10 @@ class Arm:
 
                     if self.picked_object is not None:
                         # Drop the picked object and return it
-                        self._dropped_object.add(self.picked_object)
+                        self._placed_object.add(self.picked_object)
                         self._picked_object.remove(self.picked_object)
 
-                        return self.dropped_object
+                        return self.placed_object
 
     def is_retracted(self) -> bool:
         """Check if the arm is entirely retracted (gripper has returned to base)"""
