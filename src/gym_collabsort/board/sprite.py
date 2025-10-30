@@ -38,7 +38,10 @@ class Sprite(pygame.sprite.Sprite):
         """Get location of sprite center, relative to board"""
 
         # Y is offsetted to take into account the dropped objects line above the board
-        return (self.rect.center[0], self.rect.center[1] - self.config.y_offset)
+        return (
+            self.rect.center[0],
+            self.rect.center[1] - self.config.scorebar_height,
+        )
 
     @location.setter
     def location(self, value: Vector2 | tuple[int, int]) -> None:
@@ -49,7 +52,7 @@ class Sprite(pygame.sprite.Sprite):
         # X is the same for relative and absolute locations.
         # Y is offsetted by the height of the drooped objects line + a thin margin
         self.rect = self.image.get_rect(
-            center=(value[0], value[1] + self.config.y_offset)
+            center=(value[0], value[1] + self.config.scorebar_height)
         )
 
     @property

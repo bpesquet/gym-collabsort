@@ -26,28 +26,28 @@ class ArmBase(Sprite):
     def __init__(self, location: Vector2, config: Config) -> None:
         super().__init__(
             location=location,
-            size=config.arm_base_size,
+            size=config.board_cell_size,
             config=config,
         )
 
         # Draw an empty square box
         # Draw vertical lines
-        for x in (0, config.arm_base_size - 1):
+        for x in (0, config.board_cell_size - 1):
             pygame.draw.line(
                 surface=self.image,
                 color="black",
                 start_pos=(x, 0),
-                end_pos=(x, config.arm_base_size),
-                width=config.arm_base_line_width,
+                end_pos=(x, config.board_cell_size),
+                width=config.arm_base_line_thickness,
             )
         # Draw horizontal lines
-        for y in (0, config.arm_base_size - 1):
+        for y in (0, config.board_cell_size - 1):
             pygame.draw.line(
                 surface=self.image,
                 color="black",
                 start_pos=(0, y),
-                end_pos=(config.arm_base_size, y),
-                width=config.arm_base_line_width,
+                end_pos=(config.board_cell_size, y),
+                width=config.arm_base_line_thickness,
             )
 
 

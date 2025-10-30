@@ -31,15 +31,15 @@ class Board:
         # Create agent and robot arms
         self.agent_arm = Arm(
             location=Vector2(
-                x=self.config.board_width // 2,
-                y=self.config.board_height - self.config.arm_base_size // 2,
+                x=(self.config.arm_base_col + 0.5) * self.config.board_cell_size,
+                y=self.config.board_height - self.config.board_cell_size // 2,
             ),
             config=config,
         )
         self.robot_arm = Arm(
             location=Vector2(
-                x=self.config.board_width // 2,
-                y=self.config.arm_base_size // 2,
+                x=(self.config.arm_base_col + 0.5) * self.config.board_cell_size,
+                y=self.config.board_cell_size // 2,
             ),
             config=config,
         )
@@ -59,12 +59,12 @@ class Board:
             # Randoml generate coordinates compatible with board dimensions
             obj_location = Vector2(
                 x=rng.integers(
-                    low=self.config.object_size // 2,
-                    high=self.config.board_width - self.config.object_size // 2,
+                    low=self.config.board_cell_size // 2,
+                    high=self.config.board_width - self.config.board_cell_size // 2,
                 ),
                 y=rng.integers(
-                    low=self.config.object_size // 2,
-                    high=self.config.board_height - self.config.object_size // 2,
+                    low=self.config.board_cell_size // 2,
+                    high=self.config.board_height - self.config.board_cell_size // 2,
                 ),
             )
             # Randomly generate object attributes
@@ -143,9 +143,12 @@ class Board:
             pygame.draw.line(
                 surface=self.canvas,
                 color="black",
-                start_pos=(0, y + self.config.y_offset),
-                end_pos=(self.config.board_width, y + self.config.y_offset),
-                width=self.config.board_line_width,
+                start_pos=(0, y + self.config.scorebar_height),
+                end_pos=(
+                    self.config.board_width,
+                    y + self.config.scorebar_height,
+                ),
+                width=self.config.scorebar_line_thickness,
             )
 
         # An object just dropped by the agent arm must be moved below the board
@@ -153,10 +156,10 @@ class Board:
             # Move dropped object to line above the board
             self.agent_arm.dropped_object.location_abs = (
                 len(self.agent_dropped_objects)
-                * (self.config.object_size + self.config.dropped_object_margin)
-                + self.config.object_size // 2
-                + self.config.dropped_object_margin,
-                self.agent_arm.base.location_abs[1] + self.config.y_offset,
+                * (self.config.board_cell_size + self.config.scorebar_margin)
+                + self.config.board_cell_size // 2
+                + self.config.scorebar_margin,
+                self.agent_arm.base.location_abs[1] + self.config.scorebar_height,
             )
             # Update objects lists
             self.agent_dropped_objects.add(self.agent_arm.dropped_object)
@@ -168,10 +171,10 @@ class Board:
             # Move dropped object to line below the board
             self.robot_arm.dropped_object.location_abs = (
                 len(self.robot_dropped_objects)
-                * (self.config.object_size + self.config.dropped_object_margin)
-                + self.config.object_size // 2
-                + self.config.dropped_object_margin,
-                self.robot_arm.base.location_abs[1] - self.config.y_offset,
+                * (self.config.board_cell_size + self.config.scorebar_margin)
+                + self.config.board_cell_size // 2
+                + self.config.scorebar_margin,
+                self.robot_arm.base.location_abs[1] - self.config.scorebar_height,
             )
             # Update objects lists
             self.robot_dropped_objects.add(self.robot_arm.dropped_object)
@@ -197,7 +200,7 @@ class Board:
             color="black",
             start_pos=self.agent_arm.base.location_abs,
             end_pos=self.agent_arm.claw.location_abs,
-            width=self.config.arm_line_width,
+            width=self.config.arm_line_thickness,
         )
 
         # Draw robot arm claw
@@ -208,7 +211,7 @@ class Board:
             color="black",
             start_pos=self.robot_arm.base.location_abs,
             end_pos=self.robot_arm.claw.location_abs,
-            width=self.config.arm_line_width,
+            width=self.config.arm_line_thickness,
         )
 
         return self.canvas
