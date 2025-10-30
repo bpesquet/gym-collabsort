@@ -6,6 +6,7 @@ import gymnasium as gym
 import pygame
 
 import gym_collabsort
+from gym_collabsort.config import Config
 from gym_collabsort.envs.env import CollabSortEnv, RenderMode
 from gym_collabsort.envs.robot import Robot, get_color_priorities, get_shape_priorities
 
@@ -46,7 +47,9 @@ def test_random_agent() -> None:
 def test_robotic_agent(pause_at_end: bool = False) -> None:
     """Test an agent using the same behavior as the robot, but with specific rewards"""
 
-    env = CollabSortEnv(render_mode=RenderMode.HUMAN)
+    config = Config(n_objects=10)
+
+    env = CollabSortEnv(render_mode=RenderMode.HUMAN, config=config)
     env.reset()
 
     # Use robot policy with agent rewards

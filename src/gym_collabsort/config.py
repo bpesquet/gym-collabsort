@@ -2,6 +2,7 @@
 Configuration values.
 """
 
+import math
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 
@@ -27,7 +28,7 @@ class Config:
     """Configuration class with default values"""
 
     # Frames Per Second for environment rendering
-    render_fps: int = 30
+    render_fps: int = 2
 
     # ---------- Window and board ----------
 
@@ -86,18 +87,23 @@ class Config:
     upper_treadmill_row = 4
 
     # Board row for the lower treadmill
-    lower_treadmill_row = 4
+    lower_treadmill_row = 7
 
-    # ---------- Objects and arms ----------
+    # ---------- Objects ----------
 
-    # Number of pickable objects on the board
-    n_objects: int = 15
+    # Maximum number of objects. If 0, new objects will be added indefinitely
+    n_objects: float = math.inf
 
     # Possible colors for board objects
     object_colors: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
 
     # Possible shapes for board objects
     object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
+
+    # Probability of adding a new object at each time step
+    new_object_proba = 0.25
+
+    # ---------- Agent and robot arms ----------
 
     # Board column where arm bases are placed
     arm_base_col: int = 4

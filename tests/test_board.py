@@ -8,11 +8,11 @@ from gym_collabsort.board.board import Board
 
 
 def test_board() -> None:
-    board = Board()
+    board = Board(rng=np.random.default_rng())
     assert len(board.objects) == 0
 
-    board.populate(rng=np.random.default_rng())
-    assert len(board.objects) == board.config.n_objects
+    board.add_object()
+    assert len(board.objects) == 1
 
     board.draw()
     frame = board.get_frame()

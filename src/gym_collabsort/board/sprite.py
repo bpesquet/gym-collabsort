@@ -66,3 +66,13 @@ class Sprite(pygame.sprite.Sprite):
         """Center sprite around given absolute location"""
 
         self.rect = self.image.get_rect(center=value)
+
+    def move(self, x_offset: int = 0, y_offset: int = 0) -> None:
+        """Move sprite by the specified x (horizontal) and y (vertical) offsets"""
+
+        # Compute location of new sprite center
+        new_center = Vector2(
+            x=self.rect.center[0] + x_offset * self.config.board_cell_size,
+            y=self.rect.center[1] + y_offset * self.config.board_cell_size,
+        )
+        self.location_abs = new_center

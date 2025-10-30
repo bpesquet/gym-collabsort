@@ -58,7 +58,7 @@ class CollabSortEnv(gym.Env):
         self.clock = None
 
         # Create board
-        self.board = Board(config=self.config)
+        self.board = Board(rng=self.np_random, config=self.config)
 
         # Create robot
         self.robot = Robot(
@@ -110,7 +110,7 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
-        self.board.populate(rng=self.np_random)
+        self.board.add_object()
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
@@ -155,6 +155,8 @@ class CollabSortEnv(gym.Env):
     def step(self, action: tuple[int, int]) -> tuple[dict, float, bool, bool, dict]:
         # Init reward with a small time penalty
         reward: float = self.config.reward__time_penalty
+
+        self.board.animate()
 
         # Handle robot action
         dropped_object = self._handle_action(

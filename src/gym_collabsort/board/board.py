@@ -5,7 +5,7 @@ The environment board and its content.
 import numpy as np
 import pygame
 from pygame.math import Vector2
-from pygame.sprite import Group, spritecollide
+from pygame.sprite import Group
 
 from ..config import Color, Config, Shape
 from .arm import Arm
@@ -15,11 +15,12 @@ from .object import Object
 class Board:
     """The environment board"""
 
-    def __init__(self, config: Config | None = None) -> None:
+    def __init__(self, rng: np.random.Generator, config: Config | None = None) -> None:
         if config is None:
             # Use default configuration values
             config = Config()
 
+        self.rng = rng
         self.config = config
 
         # Define the surface to draw upon
@@ -28,17 +29,20 @@ class Board:
         # Create an empty group for objects
         self.objects: Group[Object] = Group()
 
+        # Number of added objects since the beginning of the episode
+        self.n_added_objects: int = 0
+
         # Create agent and robot arms
         self.agent_arm = Arm(
             location=Vector2(
-                x=(self.config.arm_base_col + 0.5) * self.config.board_cell_size,
+                x=(self.config.arm_base_col - 0.5) * self.config.board_cell_size,
                 y=self.config.board_height - self.config.board_cell_size // 2,
             ),
             config=config,
         )
         self.robot_arm = Arm(
             location=Vector2(
-                x=(self.config.arm_base_col + 0.5) * self.config.board_cell_size,
+                x=(self.config.arm_base_col - 0.5) * self.config.board_cell_size,
                 y=self.config.board_cell_size // 2,
             ),
             config=config,
@@ -47,44 +51,53 @@ class Board:
         self.agent_dropped_objects: Group[Object] = Group()
         self.robot_dropped_objects: Group[Object] = Group()
 
-    def populate(
+    def add_object(
         self,
-        rng: np.random.Generator,
     ) -> None:
-        """Populate the board"""
+        """Add a new object to the board"""
 
-        # Add objects to the board in an available location
-        remaining_objects = self.config.n_objects
-        while remaining_objects > 0:
-            # Randoml generate coordinates compatible with board dimensions
-            obj_location = Vector2(
-                x=rng.integers(
-                    low=self.config.board_cell_size // 2,
-                    high=self.config.board_width - self.config.board_cell_size // 2,
-                ),
-                y=rng.integers(
-                    low=self.config.board_cell_size // 2,
-                    high=self.config.board_height - self.config.board_cell_size // 2,
-                ),
-            )
-            # Randomly generate object attributes
-            obj_color = rng.choice(a=self.config.object_colors)
-            obj_shape = rng.choice(a=self.config.object_shapes)
+        # Randomly choose object treadmill
+        if self.rng.choice((0, 1)):
+            obj_y = (
+                self.config.upper_treadmill_row - 0.5
+            ) * self.config.board_cell_size
+        else:
+            obj_y = (
+                self.config.lower_treadmill_row - 0.5
+            ) * self.config.board_cell_size
 
-            new_obj = Object(
-                location=obj_location,
-                color=obj_color,
-                shape=obj_shape,
-                config=self.config,
-            )
-            if (
-                not self.agent_arm.collide_sprite(sprite=new_obj)
-                and not self.robot_arm.collide_sprite(sprite=new_obj)
-                and not spritecollide(sprite=new_obj, group=self.objects, dokill=False)
-            ):
-                # Add new object if it doesn't collide with anything already present on the board
-                self.objects.add(new_obj)
-                remaining_objects -= 1
+        # Randomly generate object attributes
+        obj_color = self.rng.choice(a=self.config.object_colors)
+        obj_shape = self.rng.choice(a=self.config.object_shapes)
+
+        new_obj = Object(
+            location=Vector2(
+                x=self.config.board_cell_size * (self.config.n_cols - 0.5), y=obj_y
+            ),
+            color=obj_color,
+            shape=obj_shape,
+            config=self.config,
+        )
+        self.objects.add(new_obj)
+        self.n_added_objects += 1
+
+    def animate(self) -> None:
+        """Animate the board"""
+
+        # Move all objects from right to left on their treadmill
+        for obj in self.objects:
+            obj.move(x_offset=-1)
+
+            if obj.location[0] < 0:
+                # Object has fallen from the treadmill before being picked
+                self.objects.remove(obj)
+
+        # Add a new object according to probability if limite has not been reached yet
+        if (
+            self.n_added_objects < self.config.n_objects
+            and self.rng.random() < self.config.new_object_proba
+        ):
+            self.add_object()
 
     def get_object_at(self, location: tuple[int, int]) -> Object | None:
         """Return the object at a given location, if any"""
