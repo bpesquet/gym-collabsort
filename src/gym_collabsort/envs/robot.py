@@ -44,11 +44,11 @@ class Robot:
         self.color_priorities = color_priorities
         self.shape_priorities = shape_priorities
 
-        # Coordinates of current target (an object or the arm base)
+        # Location of current target (an object or the arm base)
         self.target_location: tuple[int, int] = None
 
     def choose_action(self) -> tuple[int, int]:
-        """Return the coordinates of the chosen target"""
+        """Return the location of the chosen target"""
 
         if self.arm.is_retracted():
             # Reset target when arm is fully retracted
@@ -79,4 +79,4 @@ class Robot:
             return self.target_location
         else:
             # No possible target => stay still
-            return self.arm.claw.location
+            return self.arm.gripper.location

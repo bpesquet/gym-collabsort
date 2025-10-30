@@ -61,7 +61,7 @@ class Config:
 
     @property
     def scorebar_height(self) -> int:
-        """Return the height of the score bar (which is an offset for vertical coordinate)"""
+        """Return the height of the score bar (which is an offset for vertical coordinates)"""
 
         return self.board_cell_size + self.scorebar_margin
 
@@ -69,7 +69,7 @@ class Config:
     def window_dimensions(self) -> tuple[int, int]:
         """Return the dimensions (width, height) of the main window in pixels"""
 
-        # Add heights of both dropped objects lines
+        # Add heights of scorebars for robot and agent
         return (
             self.board_width,
             self.board_height + self.scorebar_height * 2,
@@ -111,14 +111,14 @@ class Config:
     # Thickness of arm base lines in pixels
     arm_base_line_thickness: int = 5
 
-    # Thickness of the line between arm base and claw in pixels
+    # Thickness of the line between arm base and gripper in pixels
     arm_line_thickness: int = 7
 
-    # Size (height & width) of the agent and robot claws in pixels
-    arm_claw_size: int = board_cell_size / 2
+    # Size (height & width) of the agent and robot grippers in pixels
+    arm_gripper_size: int = board_cell_size / 2
 
-    # Arm claw movement speed in pixels
-    arm_claw_speed: int = 20
+    # Arm gripper movement speed in pixels
+    arm_gripper_speed: int = 20
 
     # ---------- Rewards ----------
 

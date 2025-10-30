@@ -68,7 +68,7 @@ class CollabSortEnv(gym.Env):
             shape_priorities=get_shape_priorities(config.robot_shape_rewards),
         )
 
-        # Define action format: coordinates of target
+        # Define action format: location of target
         self.action_space = self._get_location_space()
 
         # Define observation format. See _get_obs() method for details
@@ -90,7 +90,7 @@ class CollabSortEnv(gym.Env):
         )
 
     def _get_location_space(self) -> gym.spaces.Space:
-        """Helper method to create a Box space for the 2D coordinates of a board element"""
+        """Helper method to create a Box space for the 2D location of a board element"""
 
         return gym.spaces.Box(
             low=np.array([0, 0]),
@@ -122,9 +122,9 @@ class CollabSortEnv(gym.Env):
         Return an observation given to the agent.
 
         An observation is a dictionary containing:
-        - the coordinates of agent arm claw
+        - the location of agent arm gripper
         - the properties of all objects
-        - the coordinates of robot arm claw
+        - the location of robot arm gripper
         """
 
         objects = tuple(
@@ -132,9 +132,9 @@ class CollabSortEnv(gym.Env):
         )
 
         return {
-            "self": np.array(self.board.agent_arm.claw.location),
+            "self": np.array(self.board.agent_arm.gripper.location),
             "objects": objects,
-            "robot": np.array(self.board.robot_arm.claw.location),
+            "robot": np.array(self.board.robot_arm.gripper.location),
         }
 
     def _get_info(self) -> dict:

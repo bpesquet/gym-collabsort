@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .board import Board
 
 
-class ArmBase(Sprite):
+class Base(Sprite):
     """Base of the agent or robot arm"""
 
     def __init__(self, location: Vector2, config: Config) -> None:
@@ -51,13 +51,13 @@ class ArmBase(Sprite):
             )
 
 
-class ArmClaw(Sprite):
-    """Claw of the agent or robot arm"""
+class Gripper(Sprite):
+    """Gripper of the agent or robot arm"""
 
     def __init__(self, location: Vector2, config: Config) -> None:
         super().__init__(
             location=location,
-            size=config.arm_claw_size,
+            size=config.arm_gripper_size,
             config=config,
             transparent_background=True,
         )
@@ -67,22 +67,22 @@ class ArmClaw(Sprite):
         pygame.draw.circle(
             surface=self.image,
             color="black",
-            center=(config.arm_claw_size // 2, config.arm_claw_size // 2),
-            radius=config.arm_claw_size // 2,
+            center=(config.arm_gripper_size // 2, config.arm_gripper_size // 2),
+            radius=config.arm_gripper_size // 2,
         )
 
     def move_towards(
         self, target_location: Vector2, speed_penalty: bool = False
     ) -> None:
-        """Move the claw towards a specific target"""
+        """Move the gripper towards a specific target"""
 
         # Compute new location, including speed penalty if any
         location = Vector2(self.location)
-        max_distance = self.config.arm_claw_speed
+        max_distance = self.config.arm_gripper_speed
         if speed_penalty:
             max_distance /= self.config.collision_speed_reduction_factor
 
-        # Move claw to new location
+        # Move gripper to new location
         location.move_towards_ip(target_location, max_distance)
         self.location = location
 
@@ -94,13 +94,13 @@ class Arm:
         self.collision_penalty: bool = False
 
         # Create arm base
-        self._base: GroupSingle[ArmBase] = GroupSingle(
-            ArmBase(location=location, config=self.config)
+        self._base: GroupSingle[Base] = GroupSingle(
+            Base(location=location, config=self.config)
         )
 
-        # Create arm claw
-        self._claw: GroupSingle[ArmClaw] = GroupSingle(
-            ArmClaw(location=location, config=self.config)
+        # Create arm gripper
+        self._gripper: GroupSingle[Gripper] = GroupSingle(
+            Gripper(location=location, config=self.config)
         )
 
         # Create empty single sprite groups for picked and dropped objects.
@@ -110,16 +110,16 @@ class Arm:
         self._dropped_object: GroupSingle[Object] = GroupSingle()
 
     @property
-    def base(self) -> ArmBase:
+    def base(self) -> Base:
         """Return the arm base as a sprite"""
 
         return self._base.sprite
 
     @property
-    def claw(self) -> ArmClaw:
-        """Return the arm claw as a sprite"""
+    def gripper(self) -> Gripper:
+        """Return the arm gripper as a sprite"""
 
-        return self._claw.sprite
+        return self._gripper.sprite
 
     @property
     def picked_object(self) -> Object | None:
@@ -138,34 +138,34 @@ class Arm:
 
         return spritecollide(
             sprite=sprite, group=self._base, dokill=False
-        ) or spritecollide(sprite=sprite, group=self._claw, dokill=False)
+        ) or spritecollide(sprite=sprite, group=self._gripper, dokill=False)
 
     def collide_arm(self, arm: Arm) -> bool:
         """Check if the arm collides with the other arm"""
 
-        collide_claw: bool = self.collide_sprite(sprite=arm.claw)
+        collide_gripper: bool = self.collide_sprite(sprite=arm.gripper)
         collide_base: bool = self.collide_sprite(sprite=arm.base)
-        collide_line: tuple = self.claw.rect.clipline(
+        collide_line: tuple = self.gripper.rect.clipline(
             first_coordinate=arm.base.location_abs,
-            second_coordinate=arm.claw.location_abs,
+            second_coordinate=arm.gripper.location_abs,
         )
 
-        return collide_claw or collide_base or collide_line
+        return collide_gripper or collide_base or collide_line
 
     def move(
         self, board: Board, target_location: Vector2, other_arm: Arm
     ) -> Object | None:
-        """Move arm claw towards target coordinates, returning the dropped object if any"""
+        """Move arm gripper towards target location, returning the dropped object if any"""
 
-        if target_location != self.claw.location:
-            # Move claw towards target if different from current location
-            self.claw.move_towards(
+        if target_location != self.gripper.location:
+            # Move gripper towards target if different from current location
+            self.gripper.move_towards(
                 target_location=target_location, speed_penalty=self.collision_penalty
             )
 
             if self.picked_object is not None:
-                # Move the picked object alongside claw
-                self.picked_object.location = self.claw.location
+                # Move the picked object alongside gripper
+                self.picked_object.location = self.gripper.location
 
             if self.collide_arm(arm=other_arm):
                 # Drop any previously picked objects
@@ -178,7 +178,7 @@ class Arm:
             else:
                 if self.picked_object is None:
                     # No picked object: check if the arm can pick an object at current location
-                    obj = board.get_object_at(location=self.claw.location)
+                    obj = board.get_object_at(location=self.gripper.location)
                     if obj is not None:
                         # Pick object at current location
                         self._picked_object.add(obj)
@@ -195,6 +195,6 @@ class Arm:
                         return self.dropped_object
 
     def is_retracted(self) -> bool:
-        """Check if the arm is entirely retracted (claw has returned to base)"""
+        """Check if the arm is entirely retracted (gripper has returned to base)"""
 
-        return self.claw.location == self.base.location
+        return self.gripper.location == self.base.location

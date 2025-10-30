@@ -205,25 +205,25 @@ class Board:
         # Draw objects
         self.objects.draw(surface=self.canvas)
 
-        # Draw agent arm claw
-        self.agent_arm._claw.draw(surface=self.canvas)
-        # Draw line between agent arm base and claw
+        # Draw agent arm gripper
+        self.agent_arm._gripper.draw(surface=self.canvas)
+        # Draw line between agent arm base and gripper
         pygame.draw.line(
             surface=self.canvas,
             color="black",
             start_pos=self.agent_arm.base.location_abs,
-            end_pos=self.agent_arm.claw.location_abs,
+            end_pos=self.agent_arm.gripper.location_abs,
             width=self.config.arm_line_thickness,
         )
 
-        # Draw robot arm claw
-        self.robot_arm._claw.draw(surface=self.canvas)
-        # Draw line between robot arm base and claw
+        # Draw robot arm gripper
+        self.robot_arm._gripper.draw(surface=self.canvas)
+        # Draw line between robot arm base and gripper
         pygame.draw.line(
             surface=self.canvas,
             color="black",
             start_pos=self.robot_arm.base.location_abs,
-            end_pos=self.robot_arm.claw.location_abs,
+            end_pos=self.robot_arm.gripper.location_abs,
             width=self.config.arm_line_thickness,
         )
 
