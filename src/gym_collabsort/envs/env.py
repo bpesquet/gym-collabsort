@@ -8,9 +8,8 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 import pygame
-from pygame.math import Vector2
 
-from ..board.arm import Arm
+from ..action import Action
 from ..board.board import Board
 from ..board.object import Color, Object, Shape
 from ..config import Config
@@ -38,12 +37,12 @@ class CollabSortEnv(gym.Env):
     ) -> None:
         """Initialize the environment"""
 
+        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        self.render_mode = render_mode
+
         if config is None:
             # Use default configuration values
             config = Config()
-
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
-        self.render_mode = render_mode
 
         self.config = config
 
@@ -68,37 +67,38 @@ class CollabSortEnv(gym.Env):
             shape_priorities=get_shape_priorities(config.robot_shape_rewards),
         )
 
-        # Define action format: location of target
-        self.action_space = self._get_location_space()
+        # Define action format
+        self.action_space = gym.spaces.Discrete(len(Action))
 
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
             {
-                "self": self._get_location_space(),
+                "self": self._get_coords_space(),
                 "objects": gym.spaces.Sequence(
                     gym.spaces.Dict(
                         {
-                            "location": self._get_location_space(),
+                            "coords": self._get_coords_space(),
                             # max_length is the maximum number of characters in a color
                             "color": gym.spaces.Text(max_length=10),
                             "shape": gym.spaces.Discrete(n=len(Shape)),
                         }
                     )
                 ),
-                "robot": self._get_location_space(),
+                "robot": self._get_coords_space(),
             }
         )
 
-    def _get_location_space(self) -> gym.spaces.Space:
-        """Helper method to create a Box space for the 2D location of a board element"""
+    def _get_coords_space(self) -> gym.spaces.Space:
+        """Helper method to create a Box space for the 2D coordinates (row, col) of a board element"""
 
         return gym.spaces.Box(
-            low=np.array([0, 0]),
+            # Coordonates are 1-based
+            low=np.array([1, 1]),
             # Maximum values are bounded by board dimensions
             high=np.array(
                 [
-                    self.config.board_width,
-                    self.config.board_height,
+                    self.config.n_rows,
+                    self.config.n_cols,
                 ]
             ),
             dtype=int,
@@ -122,9 +122,9 @@ class CollabSortEnv(gym.Env):
         Return an observation given to the agent.
 
         An observation is a dictionary containing:
-        - the location of agent arm gripper
+        - the coordinates of agent arm gripper
         - the properties of all objects
-        - the location of robot arm gripper
+        - the coordinates of robot arm gripper
         """
 
         objects = tuple(
@@ -132,9 +132,9 @@ class CollabSortEnv(gym.Env):
         )
 
         return {
-            "self": np.array(self.board.agent_arm.gripper.location),
+            "self": self.board.agent_arm.gripper.coords.as_vector(),
             "objects": objects,
-            "robot": np.array(self.board.robot_arm.gripper.location),
+            "robot": self.board.robot_arm.gripper.coords.as_vector(),
         }
 
     def _get_info(self) -> dict:
@@ -144,74 +144,92 @@ class CollabSortEnv(gym.Env):
         return {}
 
     def _get_object_props(self, object: Object) -> dict:
-        """Return properties for a aspecific object"""
+        """Return properties for a specific object"""
 
         return {
-            "location": np.array(object.location),
+            "coords": object.coords.as_vector(),
             "color": object.color,
             "shape": object.shape.value,
         }
 
-    def step(self, action: tuple[int, int]) -> tuple[dict, float, bool, bool, dict]:
+    def step(self, action: Action) -> tuple[dict, float, bool, bool, dict]:
         # Init reward with a small time penalty
         reward: float = self.config.reward__time_penalty
 
         self.board.animate()
 
         # Handle robot action
-        placed_object = self._handle_action(
-            arm=self.board.robot_arm,
+        _, placed_object = self.board.robot_arm.act(
             action=self.robot.choose_action(),
+            objects=self.board.objects,
             other_arm=self.board.agent_arm,
         )
+        if placed_object is not None:
+            self._move_to_scorebar(object=placed_object, is_agent=False)
 
-        # Compute robot reward
-        reward += (
-            self._compute_reward(
+            # Compute robot reward
+            reward += self._compute_reward(
                 object=placed_object,
                 color_rewards=self.config.robot_color_rewards,
                 shape_rewards=self.config.robot_shape_rewards,
             )
-            if placed_object is not None
-            else 0
-        )
 
         # Handle agent action
-        placed_object = self._handle_action(
-            arm=self.board.agent_arm, action=action, other_arm=self.board.robot_arm
+        _, placed_object = self.board.agent_arm.act(
+            action=action, objects=self.board.objects, other_arm=self.board.robot_arm
         )
+        if placed_object is not None:
+            self._move_to_scorebar(object=placed_object, is_agent=True)
 
-        # Compute agent reward
-        reward += (
-            self._compute_reward(
+            # Compute agent reward
+            reward += self._compute_reward(
                 object=placed_object,
                 color_rewards=self.config.agent_color_rewards,
                 shape_rewards=self.config.agent_shape_rewards,
             )
-            if placed_object is not None
-            else 0
-        )
 
         observation = self._get_obs()
         info = self._get_info()
 
         # Episode is terminated when all objects have been picked up
-        terminated = len(self.board.objects) == 0
+        terminated = (
+            len(self.board.objects) == 0
+            and self.board.agent_arm.picked_object is None
+            and self.board.robot_arm.picked_object is None
+        )
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
 
         return observation, reward, terminated, False, info
 
-    def _handle_action(
-        self, arm: Arm, action: tuple[int, int], other_arm: Arm
-    ) -> Object | None:
-        """Handle an action for agent or robot arm"""
+    def _move_to_scorebar(self, object: Object, is_agent=True) -> None:
+        """Move a placed object to the agent or robot score bar"""
 
-        target_location = Vector2(action[0], action[1])
-        return arm.move(
-            board=self.board, target_location=target_location, other_arm=other_arm
+        if is_agent:
+            placed_objects = self.board.agent_placed_objects
+            # Agent score bar is located below the board
+            y_placed_object = (
+                self.board.agent_arm.base.location_abs[1] + self.config.scorebar_height
+            )
+        else:
+            placed_objects = self.board.robot_placed_objects
+            # Robot score bar is located above the board
+            y_placed_object = (
+                self.board.robot_arm.base.location_abs[1] - self.config.scorebar_height
+            )
+        x_placed_object = (
+            len(placed_objects)
+            * (self.config.board_cell_size + self.config.scorebar_margin)
+            + self.config.board_cell_size // 2
+            + self.config.scorebar_margin
         )
+
+        # Move placed object to appropriate score bar
+        object.location_abs = (x_placed_object, y_placed_object)
+
+        # Update objects lists
+        placed_objects.add(object)
 
     def _compute_reward(
         self,
@@ -256,4 +274,5 @@ class CollabSortEnv(gym.Env):
     def close(self) -> None:
         if self.window:
             pygame.display.quit()
+            pygame.quit()
             pygame.quit()

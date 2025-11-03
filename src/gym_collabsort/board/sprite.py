@@ -2,10 +2,27 @@
 Base class for board elements.
 """
 
+import math
+from dataclasses import dataclass
+
+import numpy as np
 import pygame
 from pygame.math import Vector2
 
 from ..config import Config
+
+
+@dataclass
+class Coords:
+    """2D coordinates of a sprite on the board"""
+
+    row: int
+    col: int
+
+    def as_vector(self) -> np.ndarray:
+        """Convert coordinates as a NumPy vector [row, col]"""
+
+        return np.array((self.row, self.col))
 
 
 class Sprite(pygame.sprite.Sprite):
@@ -67,12 +84,23 @@ class Sprite(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(center=value)
 
-    def move(self, x_offset: int = 0, y_offset: int = 0) -> None:
-        """Move sprite by the specified x (horizontal) and y (vertical) offsets"""
+    @property
+    def coords(self) -> Coords:
+        """Return the 2D coordinates (row, col) of the sprite on the board"""
+
+        # Col corresponds to x-axis location
+        col = math.ceil(self.location[0] / self.config.board_cell_size)
+        # Row corresponds to y-axis location
+        row = math.ceil(self.location[1] / self.config.board_cell_size)
+
+        return Coords(row=row, col=col)
+
+    def move(self, col_offset: int = 0, row_offset: int = 0) -> None:
+        """Move sprite by the specified col (horizontal) and row (vertical) offsets"""
 
         # Compute location of new sprite center
         new_center = Vector2(
-            x=self.rect.center[0] + x_offset * self.config.board_cell_size,
-            y=self.rect.center[1] + y_offset * self.config.board_cell_size,
+            x=self.rect.center[0] + col_offset * self.config.board_cell_size,
+            y=self.rect.center[1] + row_offset * self.config.board_cell_size,
         )
         self.location_abs = new_center

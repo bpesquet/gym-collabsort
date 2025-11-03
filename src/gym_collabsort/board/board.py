@@ -7,7 +7,7 @@ import pygame
 from pygame.math import Vector2
 from pygame.sprite import Group
 
-from ..config import Color, Config, Shape
+from ..config import Config
 from .arm import Arm
 from .object import Object
 
@@ -58,11 +58,11 @@ class Board:
 
         # Randomly choose object treadmill
         if self.rng.choice((0, 1)):
-            obj_y = (
+            obj_y: int = (
                 self.config.upper_treadmill_row - 0.5
             ) * self.config.board_cell_size
         else:
-            obj_y = (
+            obj_y: int = (
                 self.config.lower_treadmill_row - 0.5
             ) * self.config.board_cell_size
 
@@ -72,7 +72,8 @@ class Board:
 
         new_obj = Object(
             location=Vector2(
-                x=self.config.board_cell_size * (self.config.n_cols - 0.5), y=obj_y
+                x=round(self.config.board_cell_size * (self.config.n_cols - 0.5)),
+                y=obj_y,
             ),
             color=obj_color,
             shape=obj_shape,
@@ -82,11 +83,21 @@ class Board:
         self.n_added_objects += 1
 
     def animate(self) -> None:
-        """Animate the board"""
+        """Animate the board: move existing objects and possibly add a new one"""
 
-        # Move all objects from right to left on their treadmill
-        for obj in self.objects:
-            obj.move(x_offset=-1)
+        # Only non-picked objects move on treadmills
+        moving_objects = [
+            obj
+            for obj in self.objects
+            if (
+                obj != self.robot_arm._picked_object
+                and obj != self.agent_arm._picked_object
+            )
+        ]
+
+        # Move all non-picked objects from right to left on their treadmill
+        for obj in moving_objects:
+            obj.move(col_offset=-1)
 
             if obj.location[0] < 0:
                 # Object has fallen from the treadmill before being picked
@@ -98,51 +109,6 @@ class Board:
             and self.rng.random() < self.config.new_object_proba
         ):
             self.add_object()
-
-    def get_object_at(self, location: tuple[int, int]) -> Object | None:
-        """Return the object at a given location, if any"""
-
-        for obj in self.objects:
-            if obj.location == location:
-                return obj
-
-    def get_compatible_objects(
-        self, colors: tuple[Color], shapes: tuple[Shape]
-    ) -> list[Object]:
-        """
-        Get the ordered list of board objects with listed colors and shapes.
-
-        Desired colors and shapes are given by descending order of priority.
-        Selected objects (if any) are returned by descending order or compatibility.
-        Color is used as first selection criterion, shape as second.
-        """
-
-        shape_compatible_objects: list[Object] = []
-        compatible_objects: list[Object] = []
-
-        # Exclude already picked objects
-        available_objects = [
-            obj
-            for obj in self.objects
-            if obj != self.agent_arm.picked_object
-            and obj != self.robot_arm.picked_object
-        ]
-
-        # Select available object that are shape-compatible.
-        # They are sorted by descending order of shape priority
-        for shape in shapes:
-            for obj in available_objects:
-                if obj.shape == shape:
-                    shape_compatible_objects.append(obj)
-
-        # Select shape-compatible objects that are also color-compatible.
-        # They are sorted by descending order of color priority
-        for color in colors:
-            for obj in shape_compatible_objects:
-                if obj.color == color:
-                    compatible_objects.append(obj)
-
-        return compatible_objects
 
     def draw(self) -> pygame.Surface:
         """Draw the board"""
@@ -164,36 +130,6 @@ class Board:
                 width=self.config.scorebar_line_thickness,
             )
 
-        # An object just placed by the agent arm must be moved below the board
-        if self.agent_arm._placed_object:
-            # Move placed object to line above the board
-            self.agent_arm.placed_object_object.location_abs = (
-                len(self.agent_placed_objects)
-                * (self.config.board_cell_size + self.config.scorebar_margin)
-                + self.config.board_cell_size // 2
-                + self.config.scorebar_margin,
-                self.agent_arm.base.location_abs[1] + self.config.scorebar_height,
-            )
-            # Update objects lists
-            self.agent_placed_objects.add(self.agent_arm.placed_object_object)
-            self.objects.remove(self.agent_arm.placed_object)
-            self.agent_arm._placed_object.empty()
-
-        # An object just placed by the robot arm must be moved above the board
-        if self.robot_arm._placed_object:
-            # Move placed object to line below the board
-            self.robot_arm.placed_object_object.location_abs = (
-                len(self.robot_placed_objects)
-                * (self.config.board_cell_size + self.config.scorebar_margin)
-                + self.config.board_cell_size // 2
-                + self.config.scorebar_margin,
-                self.robot_arm.base.location_abs[1] - self.config.scorebar_height,
-            )
-            # Update objects lists
-            self.robot_placed_objects.add(self.robot_arm.placed_object)
-            self.objects.remove(self.robot_arm.placed_object)
-            self.robot_arm._placed_object.empty()
-
         # Draw placed objects for each arm
         self.agent_placed_objects.draw(surface=self.canvas)
         self.robot_placed_objects.draw(surface=self.canvas)
@@ -204,6 +140,12 @@ class Board:
 
         # Draw objects
         self.objects.draw(surface=self.canvas)
+
+        # Draw picked objects (if any)
+        if self.agent_arm.picked_object is not None:
+            self.agent_arm._picked_object.draw(surface=self.canvas)
+        if self.robot_arm.picked_object is not None:
+            self.robot_arm._picked_object.draw(surface=self.canvas)
 
         # Draw agent arm gripper
         self.agent_arm._gripper.draw(surface=self.canvas)

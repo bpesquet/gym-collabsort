@@ -4,20 +4,14 @@ Arm-related definitions.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pygame
 from pygame.math import Vector2
-from pygame.sprite import GroupSingle, spritecollide
+from pygame.sprite import Group, GroupSingle, spritecollide
 
+from ..action import Action
 from ..config import Config
 from .object import Object
-from .sprite import Sprite
-
-if TYPE_CHECKING:
-    # Only import the below statements during type checking to avoid a circular reference
-    # https://stackoverflow.com/a/67673741
-    from .board import Board
+from .sprite import Coords, Sprite
 
 
 class Base(Sprite):
@@ -71,27 +65,10 @@ class Gripper(Sprite):
             radius=config.arm_gripper_size // 2,
         )
 
-    def move_towards(
-        self, target_location: Vector2, speed_penalty: bool = False
-    ) -> None:
-        """Move the gripper towards a specific target"""
-
-        # Compute new location, including speed penalty if any
-        location = Vector2(self.location)
-        max_distance = self.config.arm_gripper_speed
-        if speed_penalty:
-            max_distance /= self.config.collision_speed_reduction_factor
-
-        # Move gripper to new location
-        location.move_towards_ip(target_location, max_distance)
-        self.location = location
-
 
 class Arm:
     def __init__(self, location: Vector2, config: Config) -> None:
         self.config = config
-
-        self.collision_penalty: bool = False
 
         # Create arm base
         self._base: GroupSingle[Base] = GroupSingle(
@@ -103,11 +80,11 @@ class Arm:
             Gripper(location=location, config=self.config)
         )
 
-        # Create empty single sprite groups for picked and placed objects.
-        # They are used to test if arm has picked or placed an object
-        # without needing to copy Object instances (which is not supported by pygame)
+        # Current movement target, if any
+        self.current_target: Coords | None = None
+
+        # Create empty single sprite group for picked object.
         self._picked_object: GroupSingle[Object] = GroupSingle()
-        self._placed_object: GroupSingle[Object] = GroupSingle()
 
     @property
     def base(self) -> Base:
@@ -127,72 +104,88 @@ class Arm:
 
         return self._picked_object.sprite
 
-    @property
-    def placed_object(self) -> Object | None:
-        """Return the placed object (if any)"""
-
-        return self._placed_object.sprite
-
-    def collide_sprite(self, sprite: Sprite) -> bool:
-        """Check if the arm collides with a sprite"""
-
-        return spritecollide(
-            sprite=sprite, group=self._base, dokill=False
-        ) or spritecollide(sprite=sprite, group=self._gripper, dokill=False)
-
     def collide_arm(self, arm: Arm) -> bool:
         """Check if the arm collides with the other arm"""
 
-        collide_gripper: bool = self.collide_sprite(sprite=arm.gripper)
-        collide_base: bool = self.collide_sprite(sprite=arm.base)
-        collide_line: tuple = self.gripper.rect.clipline(
-            first_coordinate=arm.base.location_abs,
-            second_coordinate=arm.gripper.location_abs,
-        )
+        # Only grippers can collide
+        return spritecollide(sprite=arm.gripper, group=self._gripper, dokill=False)
 
-        return collide_gripper or collide_base or collide_line
+    def act(
+        self, action: Action, objects: Group[Object], other_arm: Arm
+    ) -> tuple[bool, Object | None]:
+        """Handle the chosen action for the arm"""
 
-    def move(
-        self, board: Board, target_location: Vector2, other_arm: Arm
-    ) -> Object | None:
-        """Move arm gripper towards target location, returning the placed object if any"""
+        if action == Action.NONE and self.current_target is not None:
+            # Continue movement towards previous target
+            return self._move(objects=objects, other_arm=other_arm)
 
-        if target_location != self.gripper.location:
-            # Move gripper towards target if different from current location
-            self.gripper.move_towards(
-                target_location=target_location, speed_penalty=self.collision_penalty
-            )
+        elif action != Action.NONE and self.current_target is None:
+            self.current_target = self._get_target_coords(action=action)
 
-            if self.picked_object is not None:
-                # Move the picked object alongside gripper
-                self.picked_object.location = self.gripper.location
+            # Init movement towards new target
+            return self._move(objects=objects, other_arm=other_arm)
+
+        return False, None
+
+    def _get_target_coords(self, action: Action) -> Coords:
+        """Convert an action to the coordinates (row, col) of its target"""
+
+        col = self.gripper.coords.col
+        row = self.gripper.coords.row
+
+        if action == Action.PICK_UPPER:
+            row = self.config.upper_treadmill_row
+        elif action == Action.PICK_LOWER:
+            row = self.config.lower_treadmill_row
+
+        return Coords(row=row, col=col)
+
+    def _move(
+        self, objects: Group[Object], other_arm: Arm
+    ) -> tuple[bool, Object | None]:
+        """
+        Move arm gripper towards the current target.
+        Return collision status and the placed object if movement ends in arm base with a picket object
+        """
+
+        collision: bool = False
+        placed_object: Object = None
+
+        if self.current_target != self.gripper.coords:
+            row_offset = 1 if self.current_target.row > self.gripper.coords.row else -1
+
+            # Move the gripper
+            self.gripper.move(row_offset=row_offset)
 
             if self.collide_arm(arm=other_arm):
-                # Drop any previously picked objects
-                self._picked_object.empty()
-                other_arm._picked_object.empty()
+                collision = True
 
-                # Set collision penalty for both arms
-                self.collision_penalty = True
-                other_arm.collision_penalty = True
-            else:
-                if self.picked_object is None:
-                    # No picked object: check if the arm can pick an object at current location
-                    obj = board.get_object_at(location=self.gripper.location)
-                    if obj is not None:
-                        # Pick object at current location
-                        self._picked_object.add(obj)
+            elif self.picked_object is not None:
+                # Move the picked object alongside gripper
+                self.picked_object.move(row_offset=row_offset)
 
                 if self.is_retracted():
-                    # Arm is entirely retracted: cancel collision penalty if any
-                    self.collision_penalty = False
+                    # The placed object will be returned
+                    placed_object = self.picked_object
 
-                    if self.picked_object is not None:
-                        # Drop the picked object and return it
-                        self._placed_object.add(self.picked_object)
-                        self._picked_object.remove(self.picked_object)
+                    # Arm has finished moving the object to its base
+                    self._picked_object.remove(self.picked_object)
 
-                        return self.placed_object
+                    # Arm has no more target
+                    self.current_target = None
+
+            else:
+                # No picked object: check if the gripper can pick an object at current location
+                for obj in objects:
+                    if obj.location == self.gripper.location:
+                        # Pick object at current location
+                        self._picked_object.add(obj)
+                        objects.remove(obj)
+
+                        # Arm base is defined as new target
+                        self.current_target = self.base.coords
+
+        return collision, placed_object
 
     def is_retracted(self) -> bool:
         """Check if the arm is entirely retracted (gripper has returned to base)"""

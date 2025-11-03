@@ -2,8 +2,10 @@
 Implementation of robot policy.
 """
 
+from ..action import Action
 from ..board.arm import Arm
 from ..board.board import Board
+from ..board.object import Object
 from ..config import Color, Shape
 
 
@@ -47,36 +49,67 @@ class Robot:
         # Location of current target (an object or the arm base)
         self.target_location: tuple[int, int] = None
 
-    def choose_action(self) -> tuple[int, int]:
-        """Return the location of the chosen target"""
+    def choose_action(self) -> Action:
+        """Return the chosen action"""
+
+        action = Action.NONE
 
         if self.arm.is_retracted():
-            # Reset target when arm is fully retracted
-            self.target_location = None
-        elif self.arm.collision_penalty or self.arm.picked_object is not None:
-            # Retract arm towards its base after a collision or if a object has been picked
-            self.target_location = self.arm.base.location
-        elif (
-            self.target_location is not None
-            and self.board.get_object_at(self.target_location) is None
-        ):
-            # Previously targeted object is no longer there (probably picked by the other arm).
-            # Retract arm towards its base
-            self.target_location = self.arm.base.location
-
-        if self.target_location is None:
-            # Search for objects compatible with picking priorities
-            compatible_objects = self.board.get_compatible_objects(
+            # Search for reachable objects compatible with picking priorities
+            pickable_objects = self._get_pickable_objects(
                 colors=self.color_priorities,
                 shapes=self.shape_priorities,
             )
-            if len(compatible_objects) > 0:
-                # Aim for the first compatible object
-                self.target_location = compatible_objects[0].location
+            if len(pickable_objects) > 0:
+                # Select the first pickable object as possible target
+                target = pickable_objects[0].coords
 
-        if self.target_location is not None:
-            # Move arm towards target
-            return self.target_location
-        else:
-            # No possible target => stay still
-            return self.arm.gripper.location
+                if (target.col - self.arm.gripper.coords.col) == abs(
+                    target.row - self.arm.gripper.coords.row
+                ):
+                    # Target is pickable if movement starts now
+                    action = (
+                        Action.PICK_LOWER
+                        if target.row == self.board.config.lower_treadmill_row
+                        else Action.PICK_UPPER
+                    )
+
+        return action
+
+    def _get_pickable_objects(
+        self, colors: tuple[Color], shapes: tuple[Shape]
+    ) -> list[Object]:
+        """
+        Get the ordered list of board objects with listed colors and shapes.
+
+        Desired colors and shapes are given by descending order of priority.
+        Selected objects (if any) are returned by descending order or compatibility.
+        Color is used as first selection criterion, shape as second.
+        """
+
+        shape_compatible_objects: list[Object] = []
+        pickable_objects: list[Object] = []
+
+        # Exclude objects impossible to pick because they are already too close to the arm column
+        reachable_objects = [
+            obj
+            for obj in self.board.objects
+            if (obj.coords.col - self.arm.gripper.coords.col)
+            >= abs(obj.coords.row - self.arm.gripper.coords.row)
+        ]
+
+        # Select available objects that are shape-compatible.
+        # They are sorted by descending order of shape priority
+        for shape in shapes:
+            for obj in reachable_objects:
+                if obj.shape == shape:
+                    shape_compatible_objects.append(obj)
+
+        # Select shape-compatible objects that are also color-compatible.
+        # They are sorted by descending order of color priority
+        for color in colors:
+            for obj in shape_compatible_objects:
+                if obj.color == color:
+                    pickable_objects.append(obj)
+
+        return pickable_objects
