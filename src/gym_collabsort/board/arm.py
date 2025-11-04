@@ -83,8 +83,11 @@ class Arm:
         # Current movement target, if any
         self.current_target: Coords | None = None
 
-        # Create empty single sprite group for picked object.
+        # Create empty single sprite group for picked object
         self._picked_object: GroupSingle[Object] = GroupSingle()
+
+        # Penalty flag after a collision
+        self.collision_penalty: bool = False
 
     @property
     def base(self) -> Base:
@@ -112,8 +115,11 @@ class Arm:
 
     def act(
         self, action: Action, objects: Group[Object], other_arm: Arm
-    ) -> tuple[bool, Object | None]:
-        """Handle the chosen action for the arm"""
+    ) -> Object | None:
+        """
+        Handle the chosen action for the arm.
+        Return the placed object if movement ends in arm base with a picket object
+        """
 
         if action == Action.NONE and self.current_target is not None:
             # Continue movement towards previous target
@@ -125,7 +131,7 @@ class Arm:
             # Init movement towards new target
             return self._move(objects=objects, other_arm=other_arm)
 
-        return False, None
+        return None
 
     def _get_target_coords(self, action: Action) -> Coords:
         """Convert an action to the coordinates (row, col) of its target"""
@@ -140,15 +146,12 @@ class Arm:
 
         return Coords(row=row, col=col)
 
-    def _move(
-        self, objects: Group[Object], other_arm: Arm
-    ) -> tuple[bool, Object | None]:
+    def _move(self, objects: Group[Object], other_arm: Arm) -> Object | None:
         """
         Move arm gripper towards the current target.
-        Return collision status and the placed object if movement ends in arm base with a picket object
+        Return the placed object if movement ends in arm base with a picket object
         """
 
-        collision: bool = False
         placed_object: Object = None
 
         if self.current_target != self.gripper.coords:
@@ -158,7 +161,8 @@ class Arm:
             self.gripper.move(row_offset=row_offset)
 
             if self.collide_arm(arm=other_arm):
-                collision = True
+                self.handle_collision()
+                other_arm.handle_collision()
 
             elif self.picked_object is not None:
                 # Move the picked object alongside gripper
@@ -169,7 +173,8 @@ class Arm:
                     placed_object = self.picked_object
 
                     # Arm has finished moving the object to its base
-                    self._picked_object.remove(self.picked_object)
+                    self._picked_object.remove(placed_object)
+                    objects.remove(placed_object)
 
                     # Arm has no more target
                     self.current_target = None
@@ -180,12 +185,26 @@ class Arm:
                     if obj.location == self.gripper.location:
                         # Pick object at current location
                         self._picked_object.add(obj)
-                        objects.remove(obj)
 
                         # Arm base is defined as new target
                         self.current_target = self.base.coords
 
-        return collision, placed_object
+                if self.is_retracted():
+                    # Arm has no more target
+                    self.current_target = None
+
+        return placed_object
+
+    def handle_collision(self):
+        """Handle a collision involving this arm"""
+
+        self.collision_penalty = True
+
+        # Drop any object picked at this time step
+        self._picked_object.empty()
+
+        # Move arm gripper back to its base
+        self.current_target = self.base.coords
 
     def is_retracted(self) -> bool:
         """Check if the arm is entirely retracted (gripper has returned to base)"""

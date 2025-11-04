@@ -156,11 +156,15 @@ class CollabSortEnv(gym.Env):
         # Init reward with a small time penalty
         reward: float = self.config.reward__time_penalty
 
+        # Agent and robot choose their action based on the same world state
+        robot_action = self.robot.choose_action()
+
+        # Change world state
         self.board.animate()
 
         # Handle robot action
-        _, placed_object = self.board.robot_arm.act(
-            action=self.robot.choose_action(),
+        placed_object = self.board.robot_arm.act(
+            action=robot_action,
             objects=self.board.objects,
             other_arm=self.board.agent_arm,
         )
@@ -175,7 +179,7 @@ class CollabSortEnv(gym.Env):
             )
 
         # Handle agent action
-        _, placed_object = self.board.agent_arm.act(
+        placed_object = self.board.agent_arm.act(
             action=action, objects=self.board.objects, other_arm=self.board.robot_arm
         )
         if placed_object is not None:

@@ -90,8 +90,8 @@ class Board:
             obj
             for obj in self.objects
             if (
-                obj != self.robot_arm._picked_object
-                and obj != self.agent_arm._picked_object
+                obj != self.robot_arm.picked_object
+                and obj != self.agent_arm.picked_object
             )
         ]
 
