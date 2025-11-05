@@ -4,15 +4,31 @@ Configuration values.
 
 import math
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import Enum
+
+import numpy as np
 
 
-class Color(StrEnum):
+class Color(Enum):
     """Possible colors for an object"""
 
-    RED = "red"
-    BLUE = "blue"
-    YELLOW = "yellow"
+    RED = 0
+    BLUE = 1
+    YELLOW = 2
+
+
+def get_color_name(color: Color) -> str:
+    """Return the name associated to a color"""
+
+    if color == Color.RED:
+        return "red"
+    elif color == Color.BLUE:
+        return "blue"
+    elif color == Color.YELLOW:
+        return "yellow"
+
+    print(f"Error: unrecognized color {color}")
+    return "white"
 
 
 class Shape(Enum):
@@ -128,30 +144,16 @@ class Config:
     # Time penalty used as based reward
     reward__time_penalty: float = -0.1
 
-    # Robot rewards linked to placed objects' colors
-    robot_color_rewards = {
-        Color.RED: 5,
-        Color.YELLOW: 0,
-        Color.BLUE: -5,
-    }
+    @property
+    def agent_rewards(self) -> np.ndarray:
+        """Return the rewards array associated to object properties for the agent"""
 
-    # Robot rewards linked to placed objects' shapes
-    robot_shape_rewards = {
-        Shape.SQUARE: 2,
-        Shape.CIRCLE: 1,
-        Shape.TRIANGLE: 0,
-    }
+        # Rows are indiced by object color, columns by object shape
+        return np.array([[8, 7, 6], [5, 4, 3], [2, 1, 0]])
 
-    # Agent rewards linked to placed objects' colors
-    agent_color_rewards = {
-        Color.BLUE: 5,
-        Color.RED: 0,
-        Color.YELLOW: -5,
-    }
+    @property
+    def robot_rewards(self) -> np.ndarray:
+        """Return the rewards array associated to object properties for the robot"""
 
-    # Agent rewards linked to placed objects' shapes
-    agent_shape_rewards = {
-        Shape.CIRCLE: 1,
-        Shape.SQUARE: 1,
-        Shape.TRIANGLE: 0,
-    }
+        # Rows are indiced by object color, columns by object shape
+        return np.array([[5, 4, 3], [8, 7, 6], [2, 1, 0]])

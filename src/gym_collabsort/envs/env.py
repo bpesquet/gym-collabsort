@@ -11,9 +11,9 @@ import pygame
 
 from ..action import Action
 from ..board.board import Board
-from ..board.object import Color, Object, Shape
+from ..board.object import Object, Shape
 from ..config import Config
-from .robot import Robot, get_color_priorities, get_shape_priorities
+from .robot import Robot
 
 
 class RenderMode(StrEnum):
@@ -63,8 +63,7 @@ class CollabSortEnv(gym.Env):
         self.robot = Robot(
             board=self.board,
             arm=self.board.robot_arm,
-            color_priorities=get_color_priorities(config.robot_color_rewards),
-            shape_priorities=get_shape_priorities(config.robot_shape_rewards),
+            rewards=config.robot_rewards,
         )
 
         # Define action format
@@ -172,11 +171,7 @@ class CollabSortEnv(gym.Env):
             self._move_to_scorebar(object=placed_object, is_agent=False)
 
             # Compute robot reward
-            reward += self._compute_reward(
-                object=placed_object,
-                color_rewards=self.config.robot_color_rewards,
-                shape_rewards=self.config.robot_shape_rewards,
-            )
+            reward += placed_object.get_reward(rewards=self.config.robot_rewards)
 
         # Handle agent action
         placed_object = self.board.agent_arm.act(
@@ -186,11 +181,7 @@ class CollabSortEnv(gym.Env):
             self._move_to_scorebar(object=placed_object, is_agent=True)
 
             # Compute agent reward
-            reward += self._compute_reward(
-                object=placed_object,
-                color_rewards=self.config.agent_color_rewards,
-                shape_rewards=self.config.agent_shape_rewards,
-            )
+            reward += placed_object.get_reward(rewards=self.config.agent_rewards)
 
         observation = self._get_obs()
         info = self._get_info()
@@ -234,16 +225,6 @@ class CollabSortEnv(gym.Env):
 
         # Update objects lists
         placed_objects.add(object)
-
-    def _compute_reward(
-        self,
-        object: Object,
-        color_rewards: dict[Color, float],
-        shape_rewards: dict[Shape, float],
-    ) -> float:
-        """Compute the reward for a placed object"""
-
-        return color_rewards[object.color] + shape_rewards[object.shape]
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:

@@ -8,7 +8,7 @@ import pygame
 import gym_collabsort
 from gym_collabsort.config import Config
 from gym_collabsort.envs.env import CollabSortEnv, RenderMode
-from gym_collabsort.envs.robot import Robot, get_color_priorities, get_shape_priorities
+from gym_collabsort.envs.robot import Robot
 
 
 def test_version() -> None:
@@ -56,8 +56,7 @@ def test_robotic_agent(pause_at_end: bool = False) -> None:
     robotic_agent = Robot(
         board=env.board,
         arm=env.board.agent_arm,
-        color_priorities=get_color_priorities(env.config.agent_color_rewards),
-        shape_priorities=get_shape_priorities(env.config.agent_shape_rewards),
+        rewards=config.agent_rewards,
     )
 
     ep_over: bool = False

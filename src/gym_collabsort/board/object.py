@@ -1,9 +1,10 @@
 """ """
 
+import numpy as np
 import pygame
 from pygame.math import Vector2
 
-from ..config import Color, Config, Shape
+from ..config import Color, Config, Shape, get_color_name
 from .sprite import Sprite
 
 
@@ -27,13 +28,15 @@ class Object(Sprite):
         self.color = color
         self.shape = shape
 
+        color_name = get_color_name(color=color)
+
         # Draw object on the image
         if self.shape == Shape.SQUARE:
-            self.image.fill(color=color)
+            self.image.fill(color=color_name)
         elif self.shape == Shape.CIRCLE:
             pygame.draw.circle(
                 surface=self.image,
-                color=self.color,
+                color=color_name,
                 center=(config.board_cell_size // 2, config.board_cell_size // 2),
                 radius=config.board_cell_size // 2,
             )
@@ -45,5 +48,10 @@ class Object(Sprite):
 
             # Draw the triangle
             pygame.draw.polygon(
-                surface=self.image, color=self.color, points=(top, bl, br)
+                surface=self.image, color=color_name, points=(top, bl, br)
             )
+
+    def get_reward(self, rewards: np.ndarray) -> float:
+        """Return the reward associated to this object"""
+
+        return rewards[self.color.value, self.shape.value]
