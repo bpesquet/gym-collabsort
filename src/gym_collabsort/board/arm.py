@@ -180,11 +180,19 @@ class Arm:
                     self.current_target = None
 
             else:
-                # No picked object: check if the gripper can pick an object at current location
-                for obj in objects:
-                    if obj.location == self.gripper.location:
+                # Only check for a pickable object if no penalty and gripper has reached its current target
+                if (
+                    not self.collision_penalty
+                    and self.current_target == self.gripper.coords
+                ):
+                    # No picked object: check if the gripper can pick an object at current location
+                    pickable_objects = [
+                        obj for obj in objects if obj.location == self.gripper.location
+                    ]
+                    # Only one object may be at the same colation as the arm gripper
+                    if len(pickable_objects) == 1:
                         # Pick object at current location
-                        self._picked_object.add(obj)
+                        self._picked_object.add(pickable_objects[0])
 
                         # Arm base is defined as new target
                         self.current_target = self.base.coords
@@ -192,6 +200,9 @@ class Arm:
                 if self.is_retracted():
                     # Arm has no more target
                     self.current_target = None
+
+                    # Reset collision penalty
+                    self.collision_penalty = False
 
         return placed_object
 

@@ -66,7 +66,7 @@ def test_robotic_agent(pause_at_end: bool = False) -> None:
         ep_over = terminated or trucanted
 
     if pause_at_end:
-        # Wait for any user input to exit enrironment
+        # Wait for any user input to exit environment
         pygame.event.clear()
         _ = pygame.event.wait()
 
