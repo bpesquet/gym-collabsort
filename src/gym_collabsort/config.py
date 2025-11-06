@@ -52,7 +52,7 @@ class Config:
     """Configuration class with default values"""
 
     # Frames Per Second for environment rendering
-    render_fps: int = 10
+    render_fps: int = 5
 
     # ---------- Window and board ----------
 
