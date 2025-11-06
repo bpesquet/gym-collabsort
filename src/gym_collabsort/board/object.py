@@ -51,10 +51,10 @@ class Object(Sprite):
                 surface=self.image, color=color_name, points=(top, bl, br)
             )
 
-    def get_reward(self, rewards: np.ndarray) -> float:
+    def get_reward(self, rewards: np.ndarray[np.float64]) -> float:
         """Return the reward associated to this object"""
 
-        return rewards[self.color.value, self.shape.value]
+        return float(rewards[self.color.value, self.shape.value])
 
     def get_props(self) -> dict:
         """Return object properties"""

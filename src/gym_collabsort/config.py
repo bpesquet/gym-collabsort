@@ -153,7 +153,7 @@ class Config:
     arm_line_thickness: int = 7
 
     # Size (height & width) of the agent and robot grippers in pixels
-    arm_gripper_size: int = board_cell_size / 2
+    arm_gripper_size: int = board_cell_size // 2
 
     # ---------- Rewards ----------
 
@@ -165,14 +165,14 @@ class Config:
     step_reward: float = 0
 
     @property
-    def agent_rewards(self) -> np.ndarray:
+    def agent_rewards(self) -> np.ndarray[np.float64]:
         """Return the rewards array associated to object properties for the agent"""
 
         # Rows are indiced by object color, columns by object shape
         return np.array([[8, 7, 6], [5, 4, 3], [2, 1, 0]])
 
     @property
-    def robot_rewards(self) -> np.ndarray:
+    def robot_rewards(self) -> np.ndarray[np.float64]:
         """Return the rewards array associated to object properties for the robot"""
 
         # Rows are indiced by object color, columns by object shape

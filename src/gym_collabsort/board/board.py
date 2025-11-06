@@ -58,11 +58,11 @@ class Board:
 
         # Randomly choose object treadmill
         if self.rng.choice((0, 1)):
-            obj_y: int = (
+            obj_y: float = (
                 self.config.upper_treadmill_row - 0.5
             ) * self.config.board_cell_size
         else:
-            obj_y: int = (
+            obj_y: float = (
                 self.config.lower_treadmill_row - 0.5
             ) * self.config.board_cell_size
 

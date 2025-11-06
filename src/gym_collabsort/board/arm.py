@@ -118,7 +118,10 @@ class Arm:
         """Check if the arm collides with the other arm"""
 
         # Only grippers can collide
-        return spritecollide(sprite=arm.gripper, group=self._gripper, dokill=False)
+        return (
+            len(spritecollide(sprite=arm.gripper, group=self._gripper, dokill=False))
+            > 0
+        )
 
     def act(
         self,
@@ -165,9 +168,12 @@ class Arm:
         """
 
         collision = False
-        placed_object: Object = None
+        placed_object: Object | None = None
 
-        if self.current_target != self.gripper.coords:
+        if (
+            self.current_target is not None
+            and self.current_target != self.gripper.coords
+        ):
             row_offset = 1 if self.current_target.row > self.gripper.coords.row else -1
 
             # Move the gripper

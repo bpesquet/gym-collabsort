@@ -27,5 +27,11 @@ jobs:
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
+      - name: Run linting
+        run: uvx ruff check
+
+      - name: Run type checking
+        run: uvx ty check
+
       - name: Run tests
         run: uv run pytest

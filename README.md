@@ -16,6 +16,7 @@ This project is built and tested with the following software:
 
 - [uv](https://docs.astral.sh/uv/) for project management;
 - [ruff](https://docs.astral.sh/ruff/) for code formatting and linting;
+- [ty](https://docs.astral.sh/ty/) for type checking;
 - [pytest](https://docs.pytest.org) for testing.
 
 ### Installation
@@ -36,6 +37,9 @@ uvx ruff format
 
 # Lint all Python files and fix any fixable errors
 uvx ruff check --fix
+
+# Check for type-related mistakes
+uvx ty check
 
 # Test the codebase. See pyproject.toml for pytest configuration.
 # The optional -s flag prints code output.

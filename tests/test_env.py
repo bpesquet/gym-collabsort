@@ -27,6 +27,7 @@ def test_render_rgb() -> None:
     env.step(action=env.action_space.sample())
 
     frame = env.render()
+    assert frame is not None
     assert frame.ndim == 3
     assert frame.shape[0] == env.config.window_dimensions[1]
     assert frame.shape[1] == env.config.board_width
@@ -61,7 +62,9 @@ def test_robotic_agent(pause_at_end: bool = False) -> None:
 
     ep_over: bool = False
     while not ep_over:
-        _, _, terminated, trucanted, _ = env.step(action=robotic_agent.choose_action())
+        _, _, terminated, trucanted, _ = env.step(
+            action=robotic_agent.choose_action().value
+        )
         ep_over = terminated or trucanted
 
     if pause_at_end:

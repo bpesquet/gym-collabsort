@@ -52,7 +52,7 @@ class CollabSortEnv(gym.Env):
         human-mode. They will remain `None` until human-mode is used for the
         first time.
         """
-        self.window = None
+        self.window: pygame.Surface | None = None
         self.clock = None
 
         # Create board
@@ -251,19 +251,23 @@ class CollabSortEnv(gym.Env):
             return self._render_frame()
 
     def _render_frame(self) -> np.ndarray | None:
-        if self.window is None and self.render_mode == RenderMode.HUMAN:
-            # Init pygame display
-            pygame.init()
-            pygame.display.init()
-            self.window = pygame.display.set_mode(size=self.config.window_dimensions)
-            pygame.display.set_caption(self.config.window_title)
-
-        if self.clock is None and self.render_mode == RenderMode.HUMAN:
-            self.clock = pygame.time.Clock()
+        """Render the current state of the environment as a frame"""
 
         canvas = self.board.draw(collision_penalty=self.collision_penalty)
 
         if self.render_mode == RenderMode.HUMAN:
+            if self.window is None:
+                # Init pygame display
+                pygame.init()
+                pygame.display.init()
+                self.window = pygame.display.set_mode(
+                    size=self.config.window_dimensions
+                )
+                pygame.display.set_caption(self.config.window_title)
+
+            if self.clock is None:
+                self.clock = pygame.time.Clock()
+
             # The following line copies our drawings from canvas to the visible window
             self.window.blit(canvas, canvas.get_rect())
             pygame.event.pump()
