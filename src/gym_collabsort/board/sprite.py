@@ -11,6 +11,13 @@ from pygame.math import Vector2
 
 from ..config import Config
 
+"""
+Sprites on the board (objects or arms) can be positioned either through their 2D coordinates (row, column)
+on a imaginary matrix grid, or through the (x, y) location of their center relative to the top-left corner of the window.
+
+Row and column indexes start at 1.
+"""
+
 
 @dataclass
 class Coords:
@@ -57,23 +64,23 @@ class Sprite(pygame.sprite.Sprite):
         self.location = location
 
     @property
-    def location(self) -> tuple[int, int]:
+    def location(self) -> Vector2:
         """Get location of sprite center, relative to board"""
 
         # Y is offsetted to take into account the placed objects line above the board
-        return (
+        return Vector2(
             self.rect.center[0],
             self.rect.center[1] - self.config.scorebar_height,
         )
 
     @location.setter
-    def location(self, value: Vector2 | tuple[int, int]) -> None:
+    def location(self, value: Vector2) -> None:
         """Center sprite around given relative location"""
 
         # Sprite location is relative to board.
         # Two lines above and below the board display the placed objects for each arm.
         # X is the same for relative and absolute locations.
-        # Y is offsetted by the height of the drooped objects line + a thin margin
+        # Y is offsetted by the height of the robot score bar
         self.rect = self.image.get_rect(
             center=(value[0], value[1] + self.config.scorebar_height)
         )
@@ -94,9 +101,10 @@ class Sprite(pygame.sprite.Sprite):
     def coords(self) -> Coords:
         """Return the 2D coordinates (row, col) of the sprite on the board"""
 
-        # Col corresponds to x-axis location
+        # Col corresponds to x-axis (horizontal) location
+        # Row corresponds to y-axis (vertical) location
+        # Both values are round up since row and column indexes start at 1
         col = math.ceil(self.location[0] / self.config.board_cell_size)
-        # Row corresponds to y-axis location
         row = math.ceil(self.location[1] / self.config.board_cell_size)
 
         return Coords(row=row, col=col)
@@ -104,7 +112,7 @@ class Sprite(pygame.sprite.Sprite):
     def move(self, col_offset: int = 0, row_offset: int = 0) -> None:
         """Move sprite by the specified col (horizontal) and row (vertical) offsets"""
 
-        # Compute location of new sprite center
+        # Compute absolute location of new sprite center
         new_center = Vector2(
             x=self.rect.center[0] + col_offset * self.config.board_cell_size,
             y=self.rect.center[1] + row_offset * self.config.board_cell_size,

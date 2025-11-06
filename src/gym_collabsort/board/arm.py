@@ -218,7 +218,7 @@ class Arm:
     def handle_collision(self):
         """Handle a collision involving this arm"""
 
-        # Drop any object picked at this time step
+        # Release any object picked at this time step
         self._picked_object.empty()
 
         # Move arm gripper back to its base
