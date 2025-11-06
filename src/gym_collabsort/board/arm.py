@@ -224,8 +224,13 @@ class Arm:
     def handle_collision(self):
         """Handle a collision involving this arm"""
 
-        # Release any object picked at this time step
-        self._picked_object.empty()
+        if (
+            self.gripper.coords.row == self.config.upper_treadmill_row
+            or self.gripper.coords.row == self.config.lower_treadmill_row
+        ):
+            # Release any object picked at this time step.
+            # Otherwite, let gripper move back to base with the object already picked
+            self._picked_object.empty()
 
         # Move arm gripper back to its base
         self.current_target = self.base.coords

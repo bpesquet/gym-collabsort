@@ -62,10 +62,10 @@ def test_robotic_agent(pause_at_end: bool = False) -> None:
 
     ep_over: bool = False
     while not ep_over:
-        _, _, terminated, trucanted, _ = env.step(
+        _, _, terminated, truncated, _ = env.step(
             action=robotic_agent.choose_action().value
         )
-        ep_over = terminated or trucanted
+        ep_over = terminated or truncated
 
     if pause_at_end:
         # Wait for any user input to exit environment

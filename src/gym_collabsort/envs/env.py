@@ -170,14 +170,18 @@ class CollabSortEnv(gym.Env):
         # Update world state
         self.n_removed_objects += self.board.animate()
 
-        # Handle robot action.
-        # Since robot arm moves before agent arm, no collision is possible at this point
-        _, placed_object = self.board.robot_arm.act(
+        # Handle robot action
+        collision, placed_object = self.board.robot_arm.act(
             action=robot_action,
             objects=self.board.objects,
             other_arm=self.board.agent_arm,
         )
-        if placed_object is not None:
+
+        if collision:
+            # Init penalty mode just after a collision
+            self.remaining_penalty_steps = self.config.collision_penalty_steps
+
+        elif placed_object is not None:
             # Robot arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=False)
             # Compute robot reward
@@ -190,6 +194,7 @@ class CollabSortEnv(gym.Env):
             action=agent_action,
             objects=self.board.objects,
             other_arm=self.board.robot_arm,
+            collision_penalty=collision,
         )
         if collision:
             # Init penalty mode just after a collision
