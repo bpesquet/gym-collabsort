@@ -68,6 +68,10 @@ class CollabSortEnv(gym.Env):
         # Number of remaining time steps in penalty mode
         self.remaining_penalty_steps: int = 0
 
+        # Number of removed objects: placed by any arm or fallen from any treadmill.
+        # Used to assess the end of episode
+        self.n_removed_objects: int = 0
+
         # Define action format
         self.action_space = gym.spaces.Discrete(len(Action))
 
@@ -164,7 +168,7 @@ class CollabSortEnv(gym.Env):
             agent_action = robot_action = Action.NONE
 
         # Update world state
-        self.board.animate()
+        self.n_removed_objects += self.board.animate()
 
         # Handle robot action.
         # Since robot arm moves before agent arm, no collision is possible at this point
@@ -179,6 +183,8 @@ class CollabSortEnv(gym.Env):
             # Compute robot reward
             reward += placed_object.get_reward(rewards=self.config.robot_rewards)
 
+            self.n_removed_objects += 1
+
         # Handle agent action
         collision, placed_object = self.board.agent_arm.act(
             action=agent_action,
@@ -188,18 +194,21 @@ class CollabSortEnv(gym.Env):
         if collision:
             # Init penalty mode just after a collision
             self.remaining_penalty_steps = self.config.collision_penalty_steps
+
         elif placed_object is not None:
             # Agent arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=True)
             # Compute agent reward
             reward += placed_object.get_reward(rewards=self.config.agent_rewards)
 
+            self.n_removed_objects += 1
+
         observation = self._get_obs()
         info = self._get_info()
 
-        # Episode is terminated when all objects have been picked up
+        # Episode is terminated when all objects have either been placed by an arm or have fallen from a treadmill
         terminated = (
-            len(self.board.objects) == 0
+            self.n_removed_objects >= self.config.n_objects
             and self.board.agent_arm.picked_object is None
             and self.board.robot_arm.picked_object is None
         )

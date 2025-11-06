@@ -82,8 +82,14 @@ class Board:
         self.objects.add(new_obj)
         self.n_added_objects += 1
 
-    def animate(self) -> None:
-        """Animate the board: move existing objects and possibly add a new one"""
+    def animate(self) -> int:
+        """
+        Animate the board: move existing objects and possibly add a new one.
+        Return the number of fallen objects
+        """
+
+        # Number of object which have fallen from any treadmill after this movement
+        n_fallen_objects: int = 0
 
         # Only non-picked objects move on treadmills
         moving_objects = [
@@ -103,12 +109,16 @@ class Board:
                 # Object has fallen from the treadmill before being picked
                 self.objects.remove(obj)
 
+                n_fallen_objects += 1
+
         # Add a new object according to probability if limite has not been reached yet
         if (
             self.n_added_objects < self.config.n_objects
             and self.rng.random() < self.config.new_object_proba
         ):
             self.add_object()
+
+        return n_fallen_objects
 
     def draw(self, collision_penalty: bool = False) -> pygame.Surface:
         """Draw the board"""
