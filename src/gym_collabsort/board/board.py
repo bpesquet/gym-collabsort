@@ -7,7 +7,7 @@ import pygame
 from pygame.math import Vector2
 from pygame.sprite import Group
 
-from ..config import Config
+from ..config import Color, Config, Shape
 from .arm import Arm
 from .object import Object
 
@@ -67,8 +67,8 @@ class Board:
             ) * self.config.board_cell_size
 
         # Randomly generate object attributes
-        obj_color = self.rng.choice(a=self.config.object_colors)
-        obj_shape = self.rng.choice(a=self.config.object_shapes)
+        obj_color: Color = self.rng.choice(Color)
+        obj_shape: Shape = self.rng.choice(Shape)
 
         new_obj = Object(
             location=Vector2(
@@ -110,7 +110,7 @@ class Board:
         ):
             self.add_object()
 
-    def draw(self) -> pygame.Surface:
+    def draw(self, collision_penalty: bool = False) -> pygame.Surface:
         """Draw the board"""
 
         # fill the surface with background color to wipe away anything previously drawed
@@ -135,7 +135,9 @@ class Board:
         self.robot_placed_objects.draw(surface=self.canvas)
 
         # Draw bases for each arm
+        self.agent_arm.base.update_image(collision_penalty=collision_penalty)
         self.agent_arm._base.draw(surface=self.canvas)
+        self.robot_arm.base.update_image(collision_penalty=collision_penalty)
         self.robot_arm._base.draw(surface=self.canvas)
 
         # Draw objects

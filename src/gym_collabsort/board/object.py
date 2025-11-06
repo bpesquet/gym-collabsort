@@ -55,3 +55,12 @@ class Object(Sprite):
         """Return the reward associated to this object"""
 
         return rewards[self.color.value, self.shape.value]
+
+    def get_props(self) -> dict:
+        """Return object properties"""
+
+        return {
+            "coords": self.coords.as_vector(),
+            "color": self.color.value,
+            "shape": self.shape.value,
+        }

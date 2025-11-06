@@ -4,10 +4,10 @@ Implementation of robot policy.
 
 import numpy as np
 
-from ..action import Action
 from ..board.arm import Arm
 from ..board.board import Board
 from ..board.object import Object
+from ..config import Action
 
 
 class Robot:

@@ -1,5 +1,5 @@
 """
-Configuration values.
+Base types and configuration values.
 """
 
 import math
@@ -27,9 +27,6 @@ def get_color_name(color: Color) -> str:
     elif color == Color.YELLOW:
         return "yellow"
 
-    print(f"Error: unrecognized color {color}")
-    return "white"
-
 
 class Shape(Enum):
     """Possible shapes for an object"""
@@ -37,6 +34,17 @@ class Shape(Enum):
     SQUARE = 0
     CIRCLE = 1
     TRIANGLE = 2
+
+
+class Action(Enum):
+    """Possible actions for agent and robot"""
+
+    # Stand still or continue a previously initiated movement
+    NONE = 0
+    # Start movement to pick an object on the uppoer treadmill
+    PICK_UPPER = 1
+    # Start movement to pick an object on the lower treadmill
+    PICK_LOWER = 2
 
 
 @dataclass
@@ -105,16 +113,24 @@ class Config:
     # Board row for the lower treadmill
     lower_treadmill_row = 7
 
+    def get_target_coords(self, action: Action) -> tuple[int, int]:
+        """Convert an action to the coordinates (row, col) of its target"""
+
+        col = self.arm_base_col
+
+        if action == Action.PICK_UPPER:
+            row = self.upper_treadmill_row
+        elif action == Action.PICK_LOWER:
+            row = self.lower_treadmill_row
+        else:
+            raise Exception(f"Unable to convert action {action} to target coordinates")
+
+        return row, col
+
     # ---------- Objects ----------
 
     # Maximum number of objects. If 0, new objects will be added indefinitely
     n_objects: float = math.inf
-
-    # Possible colors for board objects
-    object_colors: tuple[Color] = (Color.RED, Color.BLUE, Color.YELLOW)
-
-    # Possible shapes for board objects
-    object_shapes: tuple[Shape] = (Shape.SQUARE, Shape.CIRCLE, Shape.TRIANGLE)
 
     # Probability of adding a new object at each time step
     new_object_proba = 0.25
@@ -127,22 +143,23 @@ class Config:
     # Thickness of arm base lines in pixels
     arm_base_line_thickness: int = 5
 
+    # Background color for arm base while in penalty mode
+    arm_base_penalty_color: str = "orange"
+
     # Thickness of the line between arm base and gripper in pixels
     arm_line_thickness: int = 7
 
     # Size (height & width) of the agent and robot grippers in pixels
     arm_gripper_size: int = board_cell_size / 2
 
-    # Arm gripper movement speed in pixels
-    arm_gripper_speed: int = 20
-
     # ---------- Rewards ----------
 
-    # Factor by which the arm speed is reduced after a collision
-    collision_speed_reduction_factor: int = 4
+    # Duration in time steps of movement penalty after a collision.
+    # Includes the steps needed to move grippers back to their base
+    collision_penalty_steps: int = 20
 
-    # Time penalty used as based reward
-    reward__time_penalty: float = -0.1
+    # Base step reward
+    step_reward: float = 0
 
     @property
     def agent_rewards(self) -> np.ndarray:

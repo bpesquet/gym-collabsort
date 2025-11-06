@@ -47,7 +47,7 @@ def test_random_agent() -> None:
 def test_robotic_agent(pause_at_end: bool = False) -> None:
     """Test an agent using the same behavior as the robot, but with specific rewards"""
 
-    config = Config(n_objects=10)
+    config = Config(n_objects=30)
 
     env = CollabSortEnv(render_mode=RenderMode.HUMAN, config=config)
     env.reset()

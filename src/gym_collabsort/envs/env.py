@@ -9,10 +9,9 @@ import gymnasium as gym
 import numpy as np
 import pygame
 
-from ..action import Action
 from ..board.board import Board
-from ..board.object import Object, Shape
-from ..config import Config
+from ..board.object import Color, Object, Shape
+from ..config import Action, Config
 from .robot import Robot
 
 
@@ -66,6 +65,9 @@ class CollabSortEnv(gym.Env):
             rewards=config.robot_rewards,
         )
 
+        # Number of remaining time steps in penalty mode
+        self.remaining_penalty_steps: int = 0
+
         # Define action format
         self.action_space = gym.spaces.Discrete(len(Action))
 
@@ -77,8 +79,7 @@ class CollabSortEnv(gym.Env):
                     gym.spaces.Dict(
                         {
                             "coords": self._get_coords_space(),
-                            # max_length is the maximum number of characters in a color
-                            "color": gym.spaces.Text(max_length=10),
+                            "color": gym.spaces.Discrete(n=len(Color)),
                             "shape": gym.spaces.Discrete(n=len(Shape)),
                         }
                     )
@@ -103,6 +104,12 @@ class CollabSortEnv(gym.Env):
             dtype=int,
         )
 
+    @property
+    def collision_penalty(self) -> bool:
+        """Return penalty mode status: are arms in penalty mode after a collision?"""
+
+        return self.remaining_penalty_steps > 0
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict, dict]:
@@ -126,9 +133,7 @@ class CollabSortEnv(gym.Env):
         - the coordinates of robot arm gripper
         """
 
-        objects = tuple(
-            self._get_object_props(object=obj) for obj in self.board.objects
-        )
+        objects = tuple(obj.get_props() for obj in self.board.objects)
 
         return {
             "self": self.board.agent_arm.gripper.coords.as_vector(),
@@ -142,44 +147,50 @@ class CollabSortEnv(gym.Env):
         # No additional info
         return {}
 
-    def _get_object_props(self, object: Object) -> dict:
-        """Return properties for a specific object"""
+    def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
+        # Init reward
+        reward: float = self.config.step_reward
 
-        return {
-            "coords": object.coords.as_vector(),
-            "color": object.color,
-            "shape": object.shape.value,
-        }
+        if self.remaining_penalty_steps > 0:
+            # Decrement number of steps before canceling penalty mode
+            self.remaining_penalty_steps -= 1
 
-    def step(self, action: Action) -> tuple[dict, float, bool, bool, dict]:
-        # Init reward with a small time penalty
-        reward: float = self.config.reward__time_penalty
+        if not self.collision_penalty:
+            # Agent and robot choose their action based on the same world state (before animating the board)
+            robot_action = self.robot.choose_action()
+            agent_action = Action(action)
+        else:
+            # When in penalty mode, only possible action is NONE (stand still or continue previous movement)
+            agent_action = robot_action = Action.NONE
 
-        # Agent and robot choose their action based on the same world state
-        robot_action = self.robot.choose_action()
-
-        # Change world state
+        # Update world state
         self.board.animate()
 
-        # Handle robot action
-        placed_object = self.board.robot_arm.act(
+        # Handle robot action.
+        # Since robot arm moves before agent arm, no collision is possible at this point
+        _, placed_object = self.board.robot_arm.act(
             action=robot_action,
             objects=self.board.objects,
             other_arm=self.board.agent_arm,
         )
         if placed_object is not None:
+            # Robot arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=False)
-
             # Compute robot reward
             reward += placed_object.get_reward(rewards=self.config.robot_rewards)
 
         # Handle agent action
-        placed_object = self.board.agent_arm.act(
-            action=action, objects=self.board.objects, other_arm=self.board.robot_arm
+        collision, placed_object = self.board.agent_arm.act(
+            action=agent_action,
+            objects=self.board.objects,
+            other_arm=self.board.robot_arm,
         )
-        if placed_object is not None:
+        if collision:
+            # Init penalty mode just after a collision
+            self.remaining_penalty_steps = self.config.collision_penalty_steps
+        elif placed_object is not None:
+            # Agent arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=True)
-
             # Compute agent reward
             reward += placed_object.get_reward(rewards=self.config.agent_rewards)
 
@@ -223,7 +234,7 @@ class CollabSortEnv(gym.Env):
         # Move placed object to appropriate score bar
         object.location_abs = (x_placed_object, y_placed_object)
 
-        # Update objects lists
+        # Update placed object list for either agent or robot
         placed_objects.add(object)
 
     def render(self) -> np.ndarray | None:
@@ -241,7 +252,7 @@ class CollabSortEnv(gym.Env):
         if self.clock is None and self.render_mode == RenderMode.HUMAN:
             self.clock = pygame.time.Clock()
 
-        canvas = self.board.draw()
+        canvas = self.board.draw(collision_penalty=self.collision_penalty)
 
         if self.render_mode == RenderMode.HUMAN:
             # The following line copies our drawings from canvas to the visible window
