@@ -127,11 +127,11 @@ class Board:
         self.canvas.fill(self.config.background_color)
 
         # Draw board limits.
-        # Y is offsetted to take into account the placed objects line above the board
         for y in (0, self.config.board_height):
             pygame.draw.line(
                 surface=self.canvas,
                 color="black",
+                # Y-axis (vertical) values are offsetted to take into account the robot score bar above the board
                 start_pos=(0, y + self.config.scorebar_height),
                 end_pos=(
                     self.config.board_width,
@@ -152,6 +152,30 @@ class Board:
 
         # Draw objects
         self.objects.draw(surface=self.canvas)
+
+        # Draw treadmills lines just aboce and below objects
+        for treadmill_row in (
+            self.config.upper_treadmill_row - 1,
+            self.config.upper_treadmill_row,
+            self.config.lower_treadmill_row - 1,
+            self.config.lower_treadmill_row,
+        ):
+            pygame.draw.line(
+                surface=self.canvas,
+                color="black",
+                # Y-axis (vertical) values are offsetted to take into account the robot score bar above the board
+                start_pos=(
+                    0,
+                    treadmill_row * self.config.board_cell_size
+                    + self.config.scorebar_height,
+                ),
+                end_pos=(
+                    self.config.board_width,
+                    treadmill_row * self.config.board_cell_size
+                    + self.config.scorebar_height,
+                ),
+                width=self.config.treadmill_line_thickness,
+            )
 
         # Draw picked objects (if any)
         if self.agent_arm.picked_object is not None:

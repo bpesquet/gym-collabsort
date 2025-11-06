@@ -127,6 +127,9 @@ class Config:
 
         return row, col
 
+    # Thickness of treadmill delimitation lines in pixels
+    treadmill_line_thickness: int = 1
+
     # ---------- Objects ----------
 
     # Maximum number of objects. If 0, new objects will be added indefinitely
