@@ -39,12 +39,14 @@ class Shape(Enum):
 class Action(Enum):
     """Possible actions for agent and robot"""
 
-    # Stand still or continue a previously initiated movement
-    NONE = 0
-    # Start movement to pick an object on the uppoer treadmill
-    PICK_UPPER = 1
-    # Start movement to pick an object on the lower treadmill
-    PICK_LOWER = 2
+    # Stand still or interrupt a previous movement
+    STOP = 0
+    # Move the arm gripper up
+    UP = 1
+    # Move the arm gripper down
+    DOWN = 2
+    # Pick object at current location
+    PICK = 3
 
 
 @dataclass
@@ -113,20 +115,6 @@ class Config:
     # Board row for the lower treadmill
     lower_treadmill_row = 7
 
-    def get_target_coords(self, action: Action) -> tuple[int, int]:
-        """Convert an action to the coordinates (row, col) of its target"""
-
-        col = self.arm_base_col
-
-        if action == Action.PICK_UPPER:
-            row = self.upper_treadmill_row
-        elif action == Action.PICK_LOWER:
-            row = self.lower_treadmill_row
-        else:
-            raise Exception(f"Unable to convert action {action} to target coordinates")
-
-        return row, col
-
     # Thickness of treadmill delimitation lines in pixels
     treadmill_line_thickness: int = 1
 
@@ -157,12 +145,11 @@ class Config:
 
     # ---------- Rewards ----------
 
-    # Duration in time steps of movement penalty after a collision.
-    # Includes the steps needed to move grippers back to their base
-    collision_penalty_steps: int = 20
-
     # Base step reward
     step_reward: float = 0
+
+    # Reward when a collision happens
+    collision_reward: float = -50
 
     @property
     def agent_rewards(self) -> np.ndarray[np.float64]:

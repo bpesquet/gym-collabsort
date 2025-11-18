@@ -104,8 +104,8 @@ class Sprite(pygame.sprite.Sprite):
         # Col corresponds to x-axis (horizontal) location
         # Row corresponds to y-axis (vertical) location
         # Both values are round up since row and column indexes start at 1
-        col = math.ceil(self.location[0] / self.config.board_cell_size)
-        row = math.ceil(self.location[1] / self.config.board_cell_size)
+        col: int = math.ceil(self.location[0] / self.config.board_cell_size)
+        row: int = math.ceil(self.location[1] / self.config.board_cell_size)
 
         return Coords(row=row, col=col)
 

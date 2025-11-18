@@ -155,20 +155,9 @@ class CollabSortEnv(gym.Env):
         # Init reward
         reward: float = self.config.step_reward
 
-        if self.remaining_penalty_steps > 0:
-            # Decrement number of steps before canceling penalty mode
-            self.remaining_penalty_steps -= 1
-
-        if not self.collision_penalty:
-            # Agent and robot choose their action based on the same world state (before animating the board)
-            robot_action = self.robot.choose_action()
-            agent_action = Action(action)
-        else:
-            # When in penalty mode, only possible action is NONE (stand still or continue previous movement)
-            agent_action = robot_action = Action.NONE
-
-        # Update world state
-        self.n_removed_objects += self.board.animate()
+        # Agent and robot choose their action based on the same world state (before animating the board)
+        robot_action = self.robot.choose_action()
+        agent_action = Action(action)
 
         # Handle robot action
         collision, placed_object = self.board.robot_arm.act(
@@ -176,11 +165,8 @@ class CollabSortEnv(gym.Env):
             objects=self.board.objects,
             other_arm=self.board.agent_arm,
         )
-
         if collision:
-            # Init penalty mode just after a collision
-            self.remaining_penalty_steps = self.config.collision_penalty_steps
-
+            reward += self.config.collision_reward
         elif placed_object is not None:
             # Robot arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=False)
@@ -194,19 +180,19 @@ class CollabSortEnv(gym.Env):
             action=agent_action,
             objects=self.board.objects,
             other_arm=self.board.robot_arm,
-            collision_penalty=collision,
         )
         if collision:
-            # Init penalty mode just after a collision
-            self.remaining_penalty_steps = self.config.collision_penalty_steps
-
+            reward += self.config.collision_reward
         elif placed_object is not None:
-            # Agent arm has placed an object: move it to score bar
+            # Robot arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=True)
-            # Compute agent reward
+            # Compute robot reward
             reward += placed_object.get_reward(rewards=self.config.agent_rewards)
 
             self.n_removed_objects += 1
+
+        # Update world state
+        self.n_removed_objects += self.board.animate()
 
         observation = self._get_obs()
         info = self._get_info()

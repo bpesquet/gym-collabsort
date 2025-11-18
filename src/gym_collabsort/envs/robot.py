@@ -21,36 +21,43 @@ class Robot:
         self.arm = arm
         self.rewards = rewards
 
-        # Location of current target (an object or the arm base)
-        self.target_location: tuple[int, int] = None
-
     def choose_action(self) -> Action:
         """Return the chosen action"""
 
-        action = Action.NONE
+        # Wait by default
+        action: Action = Action.STOP
 
-        if self.arm.is_retracted():
-            # Search for the next target object
-            next_target = self._get_next_target()
+        if self.arm.picked_object is not None:
+            # Move back to arm base in order to place the picked object
+            if self.arm.gripper.coords.row > self.arm.base.coords.row:
+                action = Action.UP
+            elif self.arm.gripper.coords.row < self.arm.base.coords.row:
+                action = Action.DOWN
+        else:
+            # Search for the best object to aim for
+            best_object = self._choose_best_object()
 
-            if next_target is not None:
-                next_target_coords = next_target.coords
-
-                if (next_target_coords.col - self.arm.gripper.coords.col) == abs(
-                    next_target_coords.row - self.arm.gripper.coords.row
+            if best_object is not None:
+                if best_object.coords == self.arm.gripper.coords:
+                    # The best object is pickable now
+                    action = Action.PICK
+                elif (
+                    best_object.coords.col - self.arm.base.coords.col
+                    == best_object.coords.row - self.arm.gripper.coords.row
                 ):
-                    # Target is pickable if movement starts now
-                    action = (
-                        Action.PICK_LOWER
-                        if next_target_coords.row
-                        == self.board.config.lower_treadmill_row
-                        else Action.PICK_UPPER
-                    )
+                    # The best object will be pickable if a downward movement starts now
+                    action = Action.DOWN
+                elif (
+                    best_object.coords.col - self.arm.base.coords.col
+                    == self.arm.gripper.coords.row - best_object.coords.row
+                ):
+                    # The best object will be pickable if an upward movement starts now
+                    action = Action.UP
 
         return action
 
-    def _get_next_target(self) -> Object | None:
-        """Return the next object target (the most rewarding of the objects reachable in the future)"""
+    def _choose_best_object(self) -> Object | None:
+        """Return the best object to aim for (the most rewarding of the objects reachable in the future)"""
 
         reachable_objects: list[Object] = []
 
