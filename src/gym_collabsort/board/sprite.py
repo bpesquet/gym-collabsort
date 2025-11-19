@@ -32,12 +32,6 @@ class Coords:
         return np.array((self.row, self.col))
 
 
-def coords_from_tuple(coords: tuple[int, int]) -> Coords:
-    """Create a Coords object from a tuple of 2D coordinates (row, col)"""
-
-    return Coords(row=coords[0], col=coords[1])
-
-
 class Sprite(pygame.sprite.Sprite):
     """Base class for board elements"""
 

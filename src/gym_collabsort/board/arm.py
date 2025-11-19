@@ -116,7 +116,7 @@ class Arm:
 
     @property
     def moving_back(self) -> bool:
-        """Return True if the arm is moving back to its base after an object pickup"""
+        """Return True if the arm is moving back to its base after an object pickup or a collision"""
 
         return self.picked_object is not None or self.collision_penalty
 

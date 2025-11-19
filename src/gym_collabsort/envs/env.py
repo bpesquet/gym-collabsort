@@ -151,8 +151,9 @@ class CollabSortEnv(gym.Env):
     def _get_info(self) -> dict:
         """Return additional information given to the agent"""
 
-        # No additional info
-        return {}
+        # Arm gripper movement back to its base after an object pickup or a collision is automated.
+        # In this case, any action chosen by the agent will not be considered
+        return {"action_possible": not self.board.agent_arm.moving_back}
 
     def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
         # Init reward
