@@ -39,8 +39,8 @@ class Shape(Enum):
 class Action(Enum):
     """Possible actions for agent and robot"""
 
-    # Stand still or interrupt a previous movement
-    STOP = 0
+    # Do nothing or continue a previously initiated movement
+    NONE = 0
     # Move the arm gripper up
     UP = 1
     # Move the arm gripper down

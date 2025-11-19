@@ -112,7 +112,10 @@ class CollabSortEnv(gym.Env):
     def collision_penalty(self) -> bool:
         """Return penalty mode status: are arms in penalty mode after a collision?"""
 
-        return self.remaining_penalty_steps > 0
+        return (
+            self.board.agent_arm.collision_penalty
+            or self.board.robot_arm.collision_penalty
+        )
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -155,8 +158,12 @@ class CollabSortEnv(gym.Env):
         # Init reward
         reward: float = self.config.step_reward
 
-        # Agent and robot choose their action based on the same world state (before animating the board)
-        robot_action = self.robot.choose_action()
+        # Robot can choose an action only if it is not currently moving back to its base
+        robot_action = (
+            self.robot.choose_action()
+            if not self.robot.arm.moving_back
+            else Action.NONE
+        )
         agent_action = Action(action)
 
         # Handle robot action

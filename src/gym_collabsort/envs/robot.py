@@ -25,34 +25,27 @@ class Robot:
         """Return the chosen action"""
 
         # Wait by default
-        action: Action = Action.STOP
+        action: Action = Action.NONE
 
-        if self.arm.picked_object is not None:
-            # Move back to arm base in order to place the picked object
-            if self.arm.gripper.coords.row > self.arm.base.coords.row:
-                action = Action.UP
-            elif self.arm.gripper.coords.row < self.arm.base.coords.row:
+        # Search for the best object to aim for
+        best_object = self._choose_best_object()
+
+        if best_object is not None:
+            if best_object.coords == self.arm.gripper.coords:
+                # The best object is pickable now
+                action = Action.PICK
+            elif (
+                best_object.coords.col - self.arm.base.coords.col
+                == best_object.coords.row - self.arm.gripper.coords.row
+            ):
+                # The best object will be pickable if a downward movement starts now
                 action = Action.DOWN
-        else:
-            # Search for the best object to aim for
-            best_object = self._choose_best_object()
-
-            if best_object is not None:
-                if best_object.coords == self.arm.gripper.coords:
-                    # The best object is pickable now
-                    action = Action.PICK
-                elif (
-                    best_object.coords.col - self.arm.base.coords.col
-                    == best_object.coords.row - self.arm.gripper.coords.row
-                ):
-                    # The best object will be pickable if a downward movement starts now
-                    action = Action.DOWN
-                elif (
-                    best_object.coords.col - self.arm.base.coords.col
-                    == self.arm.gripper.coords.row - best_object.coords.row
-                ):
-                    # The best object will be pickable if an upward movement starts now
-                    action = Action.UP
+            elif (
+                best_object.coords.col - self.arm.base.coords.col
+                == self.arm.gripper.coords.row - best_object.coords.row
+            ):
+                # The best object will be pickable if an upward movement starts now
+                action = Action.UP
 
         return action
 
