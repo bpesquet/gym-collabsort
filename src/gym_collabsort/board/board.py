@@ -73,8 +73,8 @@ class Board:
             ) * self.config.board_cell_size
 
         # Randomly generate object attributes
-        obj_color: Color = self.rng.choice(Color)
-        obj_shape: Shape = self.rng.choice(Shape)
+        obj_color: Color = self.rng.choice(list(Color))
+        obj_shape: Shape = self.rng.choice(list(Shape))
 
         new_obj = Object(
             location=Vector2(

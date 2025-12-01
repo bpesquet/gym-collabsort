@@ -152,14 +152,14 @@ class Config:
     collision_reward: float = -10
 
     @property
-    def agent_rewards(self) -> np.ndarray[np.float64]:
+    def agent_rewards(self) -> np.ndarray:
         """Return the rewards array associated to object properties for the agent"""
 
         # Rows are indiced by object color, columns by object shape
         return np.array([[8, 7, 6], [5, 4, 3], [2, 1, 0]])
 
     @property
-    def robot_rewards(self) -> np.ndarray[np.float64]:
+    def robot_rewards(self) -> np.ndarray:
         """Return the rewards array associated to object properties for the robot"""
 
         # Rows are indiced by object color, columns by object shape
