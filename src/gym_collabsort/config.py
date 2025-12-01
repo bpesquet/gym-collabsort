@@ -149,7 +149,7 @@ class Config:
     step_reward: float = 0
 
     # Reward when a collision happens
-    collision_reward: float = -50
+    collision_reward: float = -10
 
     @property
     def agent_rewards(self) -> np.ndarray[np.float64]:
@@ -164,3 +164,6 @@ class Config:
 
         # Rows are indiced by object color, columns by object shape
         return np.array([[5, 4, 3], [8, 7, 6], [2, 1, 0]])
+
+    # Size in pixels of reward texts
+    reward_text_size: int = 16

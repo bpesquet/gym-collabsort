@@ -4,6 +4,7 @@ The environment board and its content.
 
 import numpy as np
 import pygame
+import pygame.freetype as freetype
 from pygame.math import Vector2
 from pygame.sprite import Group
 
@@ -22,6 +23,11 @@ class Board:
 
         self.rng = rng
         self.config = config
+
+        # Init the reward rendering objects
+        pygame.freetype.init()
+        self.agent_reward_text = freetype.Font(None)
+        self.robot_reward_text = freetype.Font(None)
 
         # Define the surface to draw upon
         self.canvas = pygame.Surface(size=self.config.window_dimensions)
@@ -120,7 +126,12 @@ class Board:
 
         return n_fallen_objects
 
-    def draw(self, collision_penalty: bool = False) -> pygame.Surface:
+    def draw(
+        self,
+        agent_reward: float = 0,
+        robot_reward: float = 0,
+        collision_penalty: bool = False,
+    ) -> pygame.Surface:
         """Draw the board"""
 
         # fill the surface with background color to wipe away anything previously drawed
@@ -203,6 +214,32 @@ class Board:
             start_pos=self.robot_arm.base.location_abs,
             end_pos=self.robot_arm.gripper.location_abs,
             width=self.config.arm_line_thickness,
+        )
+
+        # Display robot reward
+        self.robot_reward_text.render_to(
+            self.canvas,
+            # Display reward to the left of agent arm base
+            dest=(
+                10,
+                self.config.scorebar_height + self.config.board_cell_size // 3,
+            ),
+            text=f"Rewards: {robot_reward:.0f}",
+            size=self.config.reward_text_size,
+        )
+
+        # Display agent reward
+        self.agent_reward_text.render_to(
+            self.canvas,
+            # Display reward to the left of agent arm base
+            dest=(
+                10,
+                self.config.board_height
+                + self.config.scorebar_height
+                - self.config.board_cell_size // 2,
+            ),
+            text=f"Rewards: {agent_reward:.0f}",
+            size=self.config.reward_text_size,
         )
 
         return self.canvas

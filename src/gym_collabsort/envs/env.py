@@ -65,12 +65,13 @@ class CollabSortEnv(gym.Env):
             rewards=config.robot_rewards,
         )
 
-        # Number of remaining time steps in penalty mode
-        self.remaining_penalty_steps: int = 0
-
         # Number of removed objects: placed by any arm or fallen from any treadmill.
         # Used to assess the end of episode
         self.n_removed_objects: int = 0
+
+        # Total rewards for the agent and robot
+        self.cumulative_agent_rewards: float = 0
+        self.cumulative_robot_rewards: float = 0
 
         # Define action format
         self.action_space = gym.spaces.Discrete(len(Action))
@@ -123,6 +124,10 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
+        self.n_removed_objects = 0
+        self.cumulative_agent_rewards = 0
+        self.cumulative_robot_rewards = 0
+
         self.board.add_object()
 
         if self.render_mode == RenderMode.HUMAN:
@@ -156,8 +161,9 @@ class CollabSortEnv(gym.Env):
         return {"action_possible": not self.board.agent_arm.moving_back}
 
     def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
-        # Init reward
-        reward: float = self.config.step_reward
+        # Init step reward for agent and robot
+        agent_reward: float = self.config.step_reward
+        robot_reward: float = self.config.step_reward
 
         # Robot can choose an action only if it is not currently moving back to its base
         robot_action = (
@@ -168,30 +174,29 @@ class CollabSortEnv(gym.Env):
         agent_action = Action(action)
 
         # Handle robot action
-        collision, placed_object, picked_object = self.board.robot_arm.act(
+        robot_collision, placed_object, picked_object = self.board.robot_arm.act(
             action=robot_action,
             objects=self.board.objects,
             other_arm=self.board.agent_arm,
         )
-        if collision:
-            reward += self.config.collision_reward
-        elif placed_object is not None:
+        if placed_object is not None:
             # Robot arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=False)
             # Increment number of objects removed from the board
             self.n_removed_objects += 1
         elif picked_object is not None:
             # Compute robot reward
-            reward += picked_object.get_reward(rewards=self.config.robot_rewards)
+            robot_reward += picked_object.get_reward(rewards=self.config.robot_rewards)
 
         # Handle agent action
-        collision, placed_object, picked_object = self.board.agent_arm.act(
+        agent_collision, placed_object, picked_object = self.board.agent_arm.act(
             action=agent_action,
             objects=self.board.objects,
             other_arm=self.board.robot_arm,
         )
-        if collision:
-            reward += self.config.collision_reward
+        if robot_collision or agent_collision:
+            agent_reward += self.config.collision_reward
+            robot_reward += self.config.collision_reward
         elif placed_object is not None:
             # Agent arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=True)
@@ -199,10 +204,12 @@ class CollabSortEnv(gym.Env):
             self.n_removed_objects += 1
         elif picked_object is not None:
             # Compute agent reward
-            reward += picked_object.get_reward(rewards=self.config.agent_rewards)
+            agent_reward += picked_object.get_reward(rewards=self.config.agent_rewards)
 
         # Update world state
         self.n_removed_objects += self.board.animate()
+        self.cumulative_agent_rewards += agent_reward
+        self.cumulative_robot_rewards += robot_reward
 
         observation = self._get_obs()
         info = self._get_info()
@@ -217,7 +224,7 @@ class CollabSortEnv(gym.Env):
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()
 
-        return observation, reward, terminated, False, info
+        return observation, agent_reward, terminated, False, info
 
     def _move_to_scorebar(self, object: Object, is_agent=True) -> None:
         """Move a placed object to the agent or robot score bar"""
@@ -254,7 +261,11 @@ class CollabSortEnv(gym.Env):
     def _render_frame(self) -> np.ndarray | None:
         """Render the current state of the environment as a frame"""
 
-        canvas = self.board.draw(collision_penalty=self.collision_penalty)
+        canvas = self.board.draw(
+            agent_reward=self.cumulative_agent_rewards,
+            robot_reward=self.cumulative_robot_rewards,
+            collision_penalty=self.collision_penalty,
+        )
 
         if self.render_mode == RenderMode.HUMAN:
             if self.window is None:
