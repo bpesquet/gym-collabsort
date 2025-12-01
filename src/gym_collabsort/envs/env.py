@@ -168,7 +168,7 @@ class CollabSortEnv(gym.Env):
         agent_action = Action(action)
 
         # Handle robot action
-        collision, placed_object = self.board.robot_arm.act(
+        collision, placed_object, picked_object = self.board.robot_arm.act(
             action=robot_action,
             objects=self.board.objects,
             other_arm=self.board.agent_arm,
@@ -178,13 +178,14 @@ class CollabSortEnv(gym.Env):
         elif placed_object is not None:
             # Robot arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=False)
-            # Compute robot reward
-            reward += placed_object.get_reward(rewards=self.config.robot_rewards)
-
+            # Increment number of objects removed from the board
             self.n_removed_objects += 1
+        elif picked_object is not None:
+            # Compute robot reward
+            reward += picked_object.get_reward(rewards=self.config.robot_rewards)
 
         # Handle agent action
-        collision, placed_object = self.board.agent_arm.act(
+        collision, placed_object, picked_object = self.board.agent_arm.act(
             action=agent_action,
             objects=self.board.objects,
             other_arm=self.board.robot_arm,
@@ -192,12 +193,13 @@ class CollabSortEnv(gym.Env):
         if collision:
             reward += self.config.collision_reward
         elif placed_object is not None:
-            # Robot arm has placed an object: move it to score bar
+            # Agent arm has placed an object: move it to score bar
             self._move_to_scorebar(object=placed_object, is_agent=True)
-            # Compute robot reward
-            reward += placed_object.get_reward(rewards=self.config.agent_rewards)
-
+            # Increment number of objects removed from the board
             self.n_removed_objects += 1
+        elif picked_object is not None:
+            # Compute agent reward
+            reward += picked_object.get_reward(rewards=self.config.agent_rewards)
 
         # Update world state
         self.n_removed_objects += self.board.animate()
