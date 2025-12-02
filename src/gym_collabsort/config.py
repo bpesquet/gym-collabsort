@@ -148,8 +148,11 @@ class Config:
     # Base step reward
     step_reward: float = 0
 
-    # Reward when a collision happens
-    collision_reward: float = -10
+    # Negative reward when a collision happens
+    collision_penalty: float = -10
+
+    # Negative reward for movement
+    movement_penalty = -1
 
     @property
     def agent_rewards(self) -> np.ndarray:

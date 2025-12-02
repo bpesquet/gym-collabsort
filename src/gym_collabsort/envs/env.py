@@ -164,46 +164,68 @@ class CollabSortEnv(gym.Env):
         agent_reward: float = self.config.step_reward
         robot_reward: float = self.config.step_reward
 
+        # Apply robot action.
         # Robot can choose an action only if it is not currently moving back to its base
         robot_action = (
             self.robot.choose_action()
             if not self.robot.arm.moving_back
             else Action.NONE
         )
+        robot_collision, robot_placed_object, robot_picked_object = (
+            self.board.robot_arm.act(
+                action=robot_action,
+                objects=self.board.objects,
+                other_arm=self.board.agent_arm,
+            )
+        )
+
+        # Apply agent action
         agent_action = Action(action)
-
-        # Handle robot action
-        robot_collision, placed_object, picked_object = self.board.robot_arm.act(
-            action=robot_action,
-            objects=self.board.objects,
-            other_arm=self.board.agent_arm,
+        agent_collision, agent_placed_object, agent_picked_object = (
+            self.board.agent_arm.act(
+                action=agent_action,
+                objects=self.board.objects,
+                other_arm=self.board.robot_arm,
+            )
         )
-        if placed_object is not None:
-            # Robot arm has placed an object: move it to score bar
-            self._move_to_scorebar(object=placed_object, is_agent=False)
-            # Increment number of objects removed from the board
-            self.n_removed_objects += 1
-        elif picked_object is not None:
-            # Compute robot reward
-            robot_reward += picked_object.get_reward(rewards=self.config.robot_rewards)
 
-        # Handle agent action
-        agent_collision, placed_object, picked_object = self.board.agent_arm.act(
-            action=agent_action,
-            objects=self.board.objects,
-            other_arm=self.board.robot_arm,
-        )
+        # Compute movement penalties
+        if robot_action in (Action.UP, Action.DOWN):
+            robot_reward += self.config.movement_penalty
+        if agent_action in (Action.UP, Action.DOWN):
+            agent_reward += self.config.movement_penalty
+
+        # Handle collisions, placed and picked objects (if any)
         if robot_collision or agent_collision:
-            agent_reward += self.config.collision_reward
-            robot_reward += self.config.collision_reward
-        elif placed_object is not None:
-            # Agent arm has placed an object: move it to score bar
-            self._move_to_scorebar(object=placed_object, is_agent=True)
-            # Increment number of objects removed from the board
-            self.n_removed_objects += 1
-        elif picked_object is not None:
-            # Compute agent reward
-            agent_reward += picked_object.get_reward(rewards=self.config.agent_rewards)
+            # Immediatly drop any picked object in case of a collision
+            self.board.robot_arm._picked_object.empty()
+            self.board.agent_arm._picked_object.empty()
+
+            # Compute negative rewards for the collision
+            agent_reward += self.config.collision_penalty
+            robot_reward += self.config.collision_penalty
+        else:
+            if robot_placed_object is not None:
+                # Robot arm has placed an object: move it to score bar
+                self._move_to_scorebar(object=robot_placed_object, is_agent=False)
+                # Increment number of objects removed from the board
+                self.n_removed_objects += 1
+            elif robot_picked_object is not None:
+                # Compute robot reward
+                robot_reward += robot_picked_object.get_reward(
+                    rewards=self.config.robot_rewards
+                )
+
+            if agent_placed_object is not None:
+                # Agent arm has placed an object: move it to score bar
+                self._move_to_scorebar(object=agent_placed_object, is_agent=True)
+                # Increment number of objects removed from the board
+                self.n_removed_objects += 1
+            elif agent_picked_object is not None:
+                # Compute agent reward
+                agent_reward += agent_picked_object.get_reward(
+                    rewards=self.config.agent_rewards
+                )
 
         # Update world state
         self.n_removed_objects += self.board.animate()
