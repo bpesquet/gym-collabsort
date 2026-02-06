@@ -198,35 +198,39 @@ class Arm:
         collision: bool = False
         placed_object: Object | None = None
 
-        # Move arm gripper
-        self.gripper.move(row_offset=row_offset)
-
-        if self.picked_object is not None:
-            # Move the picked object alongside gripper
-            self.picked_object.move(row_offset=row_offset)
-
-        if self.collide_arm(arm=other_arm):
-            collision = True
-
-            # Change collision penalty status (both grippers will move back to their base)
-            self.collision_penalty = True
-            other_arm.collision_penalty = True
-
-            if other_arm.picked_object is not None:
-                # Drop any object picked by the other arm just before this collision
-                other_arm._picked_object.empty()
-
-        if self.is_retracted():
-            # Gripper is back to its base: cancel collision penalty (if any)
-            self.collision_penalty = False
+        # Check that gripper stays within board after movement
+        if (row_offset < 0 and self.gripper.coords.row > 1) or (
+            row_offset > 0 and self.gripper.coords.row < self.config.n_rows
+        ):
+            # Move arm gripper
+            self.gripper.move(row_offset=row_offset)
 
             if self.picked_object is not None:
-                # The placed object will be returned
-                placed_object = self.picked_object
+                # Move the picked object alongside gripper
+                self.picked_object.move(row_offset=row_offset)
 
-                # Arm has finished moving the object to its base
-                self._picked_object.remove(placed_object)
-                objects.remove(placed_object)
+            if self.collide_arm(arm=other_arm):
+                collision = True
+
+                # Change collision penalty status (both grippers will move back to their base)
+                self.collision_penalty = True
+                other_arm.collision_penalty = True
+
+                if other_arm.picked_object is not None:
+                    # Drop any object picked by the other arm just before this collision
+                    other_arm._picked_object.empty()
+
+            if self.is_retracted():
+                # Gripper is back to its base: cancel collision penalty (if any)
+                self.collision_penalty = False
+
+                if self.picked_object is not None:
+                    # The placed object will be returned
+                    placed_object = self.picked_object
+
+                    # Arm has finished moving the object to its base
+                    self._picked_object.remove(placed_object)
+                    objects.remove(placed_object)
 
         return collision, placed_object
 
