@@ -106,6 +106,7 @@ class CollabSortEnv(gym.Env):
                     self.config.n_cols,
                 ]
             ),
+            dtype=np.int64,
         )
 
     @property
