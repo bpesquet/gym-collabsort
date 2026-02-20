@@ -57,6 +57,20 @@ class Board:
         self.agent_placed_objects: Group[Object] = Group()
         self.robot_placed_objects: Group[Object] = Group()
 
+    @property
+    def moving_objects(self) -> list[Object]:
+        """Return a list of objects moving on treadmills"""
+
+        return [
+            obj
+            for obj in self.objects
+            # Only non-picked objects are moving
+            if (
+                obj != self.robot_arm.picked_object
+                and obj != self.agent_arm.picked_object
+            )
+        ]
+
     def add_object(
         self,
     ) -> None:
@@ -97,18 +111,8 @@ class Board:
         # Number of object which have fallen from any treadmill after this movement
         n_fallen_objects: int = 0
 
-        # Only non-picked objects move on treadmills
-        moving_objects = [
-            obj
-            for obj in self.objects
-            if (
-                obj != self.robot_arm.picked_object
-                and obj != self.agent_arm.picked_object
-            )
-        ]
-
         # Move all non-picked objects from right to left on their treadmill
-        for obj in moving_objects:
+        for obj in self.moving_objects:
             obj.move(col_offset=-1)
 
             if obj.location[0] < 0:

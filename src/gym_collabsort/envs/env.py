@@ -79,17 +79,19 @@ class CollabSortEnv(gym.Env):
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
             {
-                "self": self._get_coords_space(),
-                "objects": gym.spaces.Sequence(
-                    gym.spaces.Dict(
-                        {
-                            "coords": self._get_coords_space(),
-                            "color": gym.spaces.Discrete(n=len(Color)),
-                            "shape": gym.spaces.Discrete(n=len(Shape)),
-                        }
-                    )
-                ),
+                "self": self._get_agent_space(),
+                "moving_objects": gym.spaces.Sequence(self._get_object_space()),
                 "robot": self._get_coords_space(),
+            }
+        )
+
+    def _get_agent_space(self) -> gym.spaces.Space:
+        """Helper method to create a Dict space (coordinates and presence of a picked object) for the agent"""
+
+        return gym.spaces.Dict(
+            {
+                "coords": self._get_coords_space(),
+                "picked_object": gym.spaces.Discrete(1),
             }
         )
 
@@ -107,6 +109,17 @@ class CollabSortEnv(gym.Env):
                 ]
             ),
             dtype=np.int64,
+        )
+
+    def _get_object_space(self) -> gym.spaces.Space:
+        """Helper method to create a Dict space for the properties of a board object"""
+
+        return gym.spaces.Dict(
+            {
+                "coords": self._get_coords_space(),
+                "color": gym.spaces.Discrete(n=len(Color)),
+                "shape": gym.spaces.Discrete(n=len(Shape)),
+            }
         )
 
     @property
@@ -140,25 +153,28 @@ class CollabSortEnv(gym.Env):
         Return an observation given to the agent.
 
         An observation is a dictionary containing:
-        - the coordinates of agent arm gripper
-        - the properties of all objects
+        - the properties of the agent (coordinates of arm gripper and presence of a picked object)
+        - the properties of all moving objects
         - the coordinates of robot arm gripper
         """
 
-        objects = tuple(obj.get_props() for obj in self.board.objects)
+        # Get list of moving objects
+        objects = tuple(obj.get_props() for obj in self.board.moving_objects)
 
         return {
-            "self": self.board.agent_arm.gripper.coords.as_vector(),
-            "objects": objects,
+            "self": {
+                "coords": self.board.agent_arm.gripper.coords.as_vector(),
+                "picked_object": int(self.board.agent_arm.picked_object is not None),
+            },
+            "moving_objects": objects,
             "robot": self.board.robot_arm.gripper.coords.as_vector(),
         }
 
     def _get_info(self) -> dict:
         """Return additional information given to the agent"""
 
-        # Arm gripper movement back to its base after an object pickup or a collision is automated.
-        # In this case, any action chosen by the agent will not be considered
-        return {"action_possible": not self.board.agent_arm.moving_back}
+        # No additional info
+        return {}
 
     def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
         # Init step reward for agent and robot
