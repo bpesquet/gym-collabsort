@@ -141,7 +141,7 @@ class CollabSortEnv(gym.Env):
         self.cumulative_agent_rewards = 0
         self.cumulative_robot_rewards = 0
 
-        self.board.add_object()
+        self.board.reset()
 
         if self.render_mode == RenderMode.HUMAN:
             self._render_frame()

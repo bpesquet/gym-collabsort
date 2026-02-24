@@ -11,7 +11,10 @@ def test_board() -> None:
     board = Board(rng=np.random.default_rng())
     assert len(board.objects) == 0
 
-    board.add_object()
+    board.reset()
+    assert len(board.objects) == 0
+
+    board._add_object()
     assert len(board.objects) == 1
 
     board.draw()

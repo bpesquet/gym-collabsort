@@ -71,7 +71,7 @@ class Board:
             )
         ]
 
-    def add_object(
+    def _add_object(
         self,
     ) -> None:
         """Add a new object to the board"""
@@ -102,6 +102,11 @@ class Board:
         self.objects.add(new_obj)
         self.n_added_objects += 1
 
+    def reset(self) -> None:
+        """Reset the board"""
+
+        self.n_added_objects = 0
+
     def animate(self) -> int:
         """
         Animate the board: move existing objects and possibly add a new one.
@@ -121,12 +126,12 @@ class Board:
 
                 n_fallen_objects += 1
 
-        # Add a new object according to probability if limite has not been reached yet
+        # Add a new object according to probability if limit has not been reached yet
         if (
             self.n_added_objects < self.config.n_objects
             and self.rng.random() < self.config.new_object_proba
         ):
-            self.add_object()
+            self._add_object()
 
         return n_fallen_objects
 
