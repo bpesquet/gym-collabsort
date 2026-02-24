@@ -150,12 +150,12 @@ class Arm:
         if self.moving_back:
             # Move back arm gripper to its base automatically
             if self.gripper.coords.row > self.base.coords.row:
-                # Moving back the robot arm gripper to its base
+                # Moving up
                 collision, placed_object = self._move(
                     row_offset=-1, objects=objects, other_arm=other_arm
                 )
             elif self.gripper.coords.row < self.base.coords.row:
-                # Moving back the agent arm gripper to its base
+                # Moving down
                 collision, placed_object = self._move(
                     row_offset=1, objects=objects, other_arm=other_arm
                 )

@@ -196,8 +196,11 @@ class CollabSortEnv(gym.Env):
             )
         )
 
-        # Apply agent action
-        agent_action = Action(action)
+        # Apply agent action.
+        # Agent can act only if it is not currently moving back to its base
+        agent_action = (
+            Action(action) if not self.board.agent_arm.moving_back else Action.NONE
+        )
         agent_collision, agent_placed_object, agent_picked_object = (
             self.board.agent_arm.act(
                 action=agent_action,
