@@ -214,7 +214,10 @@ class Arm:
 
                 # Change collision penalty status (both grippers will move back to their base)
                 self.collision_penalty = True
-                other_arm.collision_penalty = True
+                if not other_arm.is_retracted():
+                    # Penalty state is not applied if the other arm is already retracted.
+                    # Otherwise it would be stuck forever in its base
+                    other_arm.collision_penalty = True
 
                 if other_arm.picked_object is not None:
                     # Drop any object picked by the other arm just before this collision

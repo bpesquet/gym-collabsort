@@ -182,7 +182,7 @@ class CollabSortEnv(gym.Env):
         robot_reward: float = self.config.step_reward
 
         # Apply robot action.
-        # Robot can choose an action only if it is not currently moving back to its base
+        # Robot can move or pick only if it is not currently moving back to its base
         robot_action = (
             self.robot.choose_action()
             if not self.robot.arm.moving_back
@@ -197,7 +197,7 @@ class CollabSortEnv(gym.Env):
         )
 
         # Apply agent action.
-        # Agent can act only if it is not currently moving back to its base
+        # Agent can move or pick only if it is not currently moving back to its base
         agent_action = (
             Action(action) if not self.board.agent_arm.moving_back else Action.NONE
         )
@@ -215,16 +215,22 @@ class CollabSortEnv(gym.Env):
         if agent_action in (Action.UP, Action.DOWN):
             agent_reward += self.config.movement_penalty
 
-        # Handle collisions, placed and picked objects (if any)
+        # Handle collisions
         if robot_collision or agent_collision:
-            # Immediatly drop any picked object in case of a collision
-            self.board.robot_arm._picked_object.empty()
-            self.board.agent_arm._picked_object.empty()
+            # Drop any picked object in case of a collision.
+            # Any dropped object is removed from the board
+            if self.board.robot_arm.picked_object:
+                self.board.robot_arm._picked_object.empty()
+                self.n_removed_objects += 1
+            if self.board.agent_arm.picked_object:
+                self.board.agent_arm._picked_object.empty()
+                self.n_removed_objects += 1
 
             # Compute negative rewards for the collision
             agent_reward += self.config.collision_penalty
             robot_reward += self.config.collision_penalty
         else:
+            # Handle robot object
             if robot_placed_object is not None:
                 # Robot arm has placed an object: move it to score bar
                 self._move_to_scorebar(object=robot_placed_object, is_agent=False)
@@ -236,6 +242,7 @@ class CollabSortEnv(gym.Env):
                     rewards=self.config.robot_rewards
                 )
 
+            # Handle agent object
             if agent_placed_object is not None:
                 # Agent arm has placed an object: move it to score bar
                 self._move_to_scorebar(object=agent_placed_object, is_agent=True)
