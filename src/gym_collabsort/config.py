@@ -85,9 +85,6 @@ class Config:
     # Margin around score bar content in pixels
     scorebar_margin: int = 3
 
-    # Size in pixels of metric texts
-    metric_text_size: int = 16
-
     @property
     def scorebar_height(self) -> int:
         """Return the height of the score bar (which is an offset for vertical coordinates)"""
@@ -105,7 +102,7 @@ class Config:
         )
 
     # Title of the main window
-    window_title = "gym-collabsort - Collaborative sorting task"
+    window_title = "gym-collabsort - A collaborative sorting task"
 
     # Background color of the window
     background_color: str = "white"
@@ -120,14 +117,6 @@ class Config:
 
     # Thickness of treadmill delimitation lines in pixels
     treadmill_line_thickness: int = 1
-
-    # ---------- Objects ----------
-
-    # Maximum number of objects. If 0, new objects will be added indefinitely
-    n_objects: float = math.inf
-
-    # Probability of adding a new object at each time step
-    new_object_proba = 0.25
 
     # ---------- Agent and robot arms ----------
 
@@ -145,6 +134,22 @@ class Config:
 
     # Size (height & width) of the agent and robot grippers in pixels
     arm_gripper_size: int = board_cell_size // 2
+
+    # ---------- Displayed messages ----------
+
+    # Size in pixels of metric texts
+    metric_text_size: int = 16
+
+    # Duration in seconds of the message display at the beginning of each new episode
+    new_episode_message_duration: int = 2
+
+    # ---------- Objects ----------
+
+    # Maximum number of objects. If <= 0, new objects will be added indefinitely
+    n_objects: float = math.inf
+
+    # Probability of adding a new object at each time step
+    new_object_proba = 0.25
 
     # ---------- Rewards ----------
 

@@ -29,6 +29,8 @@ class Board:
         self.agent_reward_text = freetype.Font(None)
         self.robot_reward_text = freetype.Font(None)
         self.collision_text = freetype.Font(None)
+        self.new_episode_text = freetype.Font(None)
+        self.n_draws_since_reset = 0
 
         # Define the surface to draw upon
         self.canvas = pygame.Surface(size=self.config.window_dimensions)
@@ -72,6 +74,18 @@ class Board:
             )
         ]
 
+    @property
+    def new_episode_msg(self) -> str:
+        """Return the new episode message"""
+
+        # A message is briefly displayed at the beginning of each new episode
+        return (
+            "New episode!"
+            if self.n_draws_since_reset
+            < self.config.render_fps * self.config.new_episode_message_duration
+            else ""
+        )
+
     def _add_object(
         self,
     ) -> None:
@@ -107,6 +121,7 @@ class Board:
         """Reset the board"""
 
         self.n_added_objects = 0
+        self.n_draws_since_reset = 0
 
     def animate(self) -> int:
         """
@@ -144,6 +159,8 @@ class Board:
         collision_penalty: bool = False,
     ) -> pygame.Surface:
         """Draw the board"""
+
+        self.n_draws_since_reset += 1
 
         # fill the surface with background color to wipe away anything previously drawed
         self.canvas.fill(self.config.background_color)
@@ -254,15 +271,25 @@ class Board:
         # Display collision count
         self.collision_text.render_to(
             self.canvas,
-            # Display collision count between treadmills
+            # Display collision count to the left, between treadmills
             dest=(
                 10,
-                self.config.board_height // 2
-                + self.config.scorebar_height
-                - self.config.metric_text_size // 2,
+                self.config.board_height // 2 + self.config.scorebar_height - 7,
             ),
             text=f"Collisions: {collision_count:.0f}",
             size=self.config.metric_text_size,
+        )
+
+        # Display new episode message
+        self.new_episode_text.render_to(
+            self.canvas,
+            # Display new episode message at the center of the windows
+            dest=(
+                self.config.board_width // 2 - 85,
+                self.config.board_height // 2 + self.config.scorebar_height - 8,
+            ),
+            text=self.new_episode_msg,
+            size=self.config.metric_text_size * 1.5,
         )
 
         return self.canvas
