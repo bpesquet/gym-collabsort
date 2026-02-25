@@ -69,9 +69,12 @@ class CollabSortEnv(gym.Env):
         # Used to assess the end of episode
         self.n_removed_objects: int = 0
 
+        # Number of collisions
+        self.n_collisions: int = 0
+
         # Total rewards for the agent and robot
-        self.cumulative_agent_rewards: float = 0
-        self.cumulative_robot_rewards: float = 0
+        self.agent_episode_reward: float = 0
+        self.robot_episode_reward: float = 0
 
         # Define action format
         self.action_space = gym.spaces.Discrete(len(Action))
@@ -137,9 +140,11 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
+        # Reset episode metrics
         self.n_removed_objects = 0
-        self.cumulative_agent_rewards = 0
-        self.cumulative_robot_rewards = 0
+        self.n_collisions = 0
+        self.agent_episode_reward = 0
+        self.robot_episode_reward = 0
 
         self.board.reset()
 
@@ -217,6 +222,8 @@ class CollabSortEnv(gym.Env):
 
         # Handle collisions
         if robot_collision or agent_collision:
+            self.n_collisions += 1
+
             # Drop any picked object in case of a collision.
             # Any dropped object is removed from the board
             if self.board.robot_arm.picked_object:
@@ -256,8 +263,8 @@ class CollabSortEnv(gym.Env):
 
         # Update world state
         self.n_removed_objects += self.board.animate()
-        self.cumulative_agent_rewards += agent_reward
-        self.cumulative_robot_rewards += robot_reward
+        self.agent_episode_reward += agent_reward
+        self.robot_episode_reward += robot_reward
 
         observation = self._get_obs()
         info = self._get_info()
@@ -310,8 +317,9 @@ class CollabSortEnv(gym.Env):
         """Render the current state of the environment as a frame"""
 
         canvas = self.board.draw(
-            agent_reward=self.cumulative_agent_rewards,
-            robot_reward=self.cumulative_robot_rewards,
+            agent_reward=self.agent_episode_reward,
+            robot_reward=self.robot_episode_reward,
+            collision_count=self.n_collisions,
             collision_penalty=self.collision_penalty,
         )
 

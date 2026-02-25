@@ -24,10 +24,11 @@ class Board:
         self.rng = rng
         self.config = config
 
-        # Init the reward rendering objects
+        # Init the text rendering objects
         pygame.freetype.init()
         self.agent_reward_text = freetype.Font(None)
         self.robot_reward_text = freetype.Font(None)
+        self.collision_text = freetype.Font(None)
 
         # Define the surface to draw upon
         self.canvas = pygame.Surface(size=self.config.window_dimensions)
@@ -139,6 +140,7 @@ class Board:
         self,
         agent_reward: float = 0,
         robot_reward: float = 0,
+        collision_count: int = 0,
         collision_penalty: bool = False,
     ) -> pygame.Surface:
         """Draw the board"""
@@ -228,13 +230,13 @@ class Board:
         # Display robot reward
         self.robot_reward_text.render_to(
             self.canvas,
-            # Display reward to the left of agent arm base
+            # Display reward to the left of robot arm base
             dest=(
                 10,
-                self.config.scorebar_height + self.config.board_cell_size // 3,
+                self.config.scorebar_height + 15,
             ),
-            text=f"Rewards: {robot_reward:.0f}",
-            size=self.config.reward_text_size,
+            text=f"Reward: {robot_reward:.0f}",
+            size=self.config.metric_text_size,
         )
 
         # Display agent reward
@@ -243,12 +245,24 @@ class Board:
             # Display reward to the left of agent arm base
             dest=(
                 10,
-                self.config.board_height
-                + self.config.scorebar_height
-                - self.config.board_cell_size // 2,
+                self.config.board_height + self.config.scorebar_height - 25,
             ),
-            text=f"Rewards: {agent_reward:.0f}",
-            size=self.config.reward_text_size,
+            text=f"Reward: {agent_reward:.0f}",
+            size=self.config.metric_text_size,
+        )
+
+        # Display collision count
+        self.collision_text.render_to(
+            self.canvas,
+            # Display collision count between treadmills
+            dest=(
+                10,
+                self.config.board_height // 2
+                + self.config.scorebar_height
+                - self.config.metric_text_size // 2,
+            ),
+            text=f"Collisions: {collision_count:.0f}",
+            size=self.config.metric_text_size,
         )
 
         return self.canvas

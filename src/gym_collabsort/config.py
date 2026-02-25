@@ -69,7 +69,7 @@ class Config:
 
     @property
     def board_height(self) -> int:
-        """Return the height of the board in pixels"""
+        """Return the height of the board (without scorebars) in pixels"""
 
         return self.n_rows * self.board_cell_size
 
@@ -84,6 +84,9 @@ class Config:
 
     # Margin around score bar content in pixels
     scorebar_margin: int = 3
+
+    # Size in pixels of metric texts
+    metric_text_size: int = 16
 
     @property
     def scorebar_height(self) -> int:
@@ -167,6 +170,3 @@ class Config:
 
         # Rows are indiced by object color, columns by object shape
         return np.array([[5, 4, 3], [8, 7, 6], [2, 1, 0]])
-
-    # Size in pixels of reward texts
-    reward_text_size: int = 16
