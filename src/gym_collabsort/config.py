@@ -4,7 +4,7 @@ Base types and configuration values.
 
 import math
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 
 import numpy as np
 
@@ -49,9 +49,20 @@ class Action(Enum):
     PICK = 3
 
 
+class RenderMode(StrEnum):
+    """Possible render modes for the environment"""
+
+    HUMAN = "human"
+    RGB_ARRAY = "rgb_array"
+    NONE = "None"
+
+
 @dataclass
 class Config:
     """Configuration class with default values"""
+
+    # Redering mode for the environment
+    render_mode: RenderMode = RenderMode.NONE
 
     # Frames Per Second for environment rendering
     render_fps: int = 5

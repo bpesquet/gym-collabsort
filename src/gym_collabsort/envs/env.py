@@ -2,7 +2,6 @@
 Gym environment for a collaborative sorting task.
 """
 
-from enum import StrEnum
 from typing import Any
 
 import gymnasium as gym
@@ -11,16 +10,8 @@ import pygame
 
 from ..board.board import Board
 from ..board.object import Color, Shape
-from ..config import Action, Config
+from ..config import Action, Config, RenderMode
 from .robot import Robot
-
-
-class RenderMode(StrEnum):
-    """Possible render modes for the environment"""
-
-    HUMAN = "human"
-    RGB_ARRAY = "rgb_array"
-    NONE = "None"
 
 
 class CollabSortEnv(gym.Env):
@@ -31,19 +22,18 @@ class CollabSortEnv(gym.Env):
 
     def __init__(
         self,
-        render_mode: RenderMode = RenderMode.NONE,
         config: Config | None = None,
     ) -> None:
         """Initialize the environment"""
-
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
-        self.render_mode = render_mode
 
         if config is None:
             # Use default configuration values
             config = Config()
 
         self.config = config
+
+        assert self.config.render_mode in self.metadata["render_modes"]
+        self.render_mode = self.config.render_mode
 
         """
         If human-rendering is used, `self.window` will be a reference

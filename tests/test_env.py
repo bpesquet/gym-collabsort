@@ -6,8 +6,8 @@ import gymnasium as gym
 import pygame
 
 import gym_collabsort
-from gym_collabsort.config import Config
-from gym_collabsort.envs.env import CollabSortEnv, RenderMode
+from gym_collabsort.config import Config, RenderMode
+from gym_collabsort.envs.env import CollabSortEnv
 from gym_collabsort.envs.robot import Robot
 
 
@@ -19,9 +19,9 @@ def test_version() -> None:
 
 
 def test_render_rgb() -> None:
-    """Test env registration and RGB rendering"""
+    """Test RGB rendering"""
 
-    env = CollabSortEnv(render_mode=RenderMode.RGB_ARRAY)
+    env = CollabSortEnv(Config(render_mode=RenderMode.RGB_ARRAY))
     env.reset()
 
     env.step(action=env.action_space.sample())
@@ -36,7 +36,7 @@ def test_render_rgb() -> None:
 def test_random_agent() -> None:
     """Test an agent choosing random actions"""
 
-    env = gym.make("CollabSort-v0", config=Config(n_objects=10))
+    env = gym.make("CollabSort-v0")
     env.reset()
 
     for _ in range(60):
@@ -48,9 +48,9 @@ def test_random_agent() -> None:
 def test_robotic_agent(pause_at_end: bool = False) -> None:
     """Test an agent using the same behavior as the robot, but with specific rewards"""
 
-    config = Config(n_objects=10)
+    config = Config(render_mode=RenderMode.HUMAN, n_objects=10)
 
-    env = CollabSortEnv(render_mode=RenderMode.HUMAN, config=config)
+    env = CollabSortEnv(config=config)
     env.reset()
 
     # Use robot policy with agent rewards
