@@ -1,4 +1,6 @@
-""" """
+"""
+Board objects.
+"""
 
 import numpy as np
 import pygame
@@ -64,3 +66,8 @@ class Object(Sprite):
             "color": self.color.value,
             "shape": self.shape.value,
         }
+
+    def __repr__(self) -> str:  # pragma: no cover
+        """Return a string representation of the object"""
+
+        return f"Object ({self.color}, {self.shape})"

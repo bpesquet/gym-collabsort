@@ -13,5 +13,5 @@ register(id="CollabSort-v0", entry_point="gym_collabsort.envs.env:CollabSortEnv"
 # Make the version accessible within the package
 try:
     __version__ = importlib.metadata.version(__name__)
-except importlib.metadata.PackageNotFoundError:
+except importlib.metadata.PackageNotFoundError:  # pragma: no cover
     __version__ = "0.0.0"  # Fallback for development mode
