@@ -145,7 +145,7 @@ class Config:
 
     # ---------- Objects ----------
 
-    # Maximum number of objects. If <= 0, new objects will be added indefinitely
+    # Maximum number of objects. If infinite, new objects will be added indefinitely
     n_objects: float = math.inf
 
     # Probability of adding a new object at each time step

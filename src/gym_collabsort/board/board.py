@@ -11,6 +11,7 @@ from pygame.sprite import Group
 from ..config import Color, Config, Shape
 from .arm import Arm
 from .object import Object
+from .scorebar import ScoreBar
 
 
 class Board:
@@ -57,8 +58,15 @@ class Board:
             config=config,
         )
 
-        self.agent_placed_objects: Group[Object] = Group()
-        self.robot_placed_objects: Group[Object] = Group()
+        # Create score bars
+        self.agent_scorebar = ScoreBar(
+            config=self.config,
+            y_object=self.agent_arm.base.location_abs[1] + self.config.scorebar_height,
+        )
+        self.robot_scorebar = ScoreBar(
+            config=self.config,
+            y_object=self.robot_arm.base.location_abs[1] - self.config.scorebar_height,
+        )
 
     @property
     def moving_objects(self) -> list[Object]:
@@ -165,7 +173,7 @@ class Board:
         # fill the surface with background color to wipe away anything previously drawed
         self.canvas.fill(self.config.background_color)
 
-        # Draw board limits.
+        # Draw board limits
         for y in (0, self.config.board_height):
             pygame.draw.line(
                 surface=self.canvas,
@@ -180,8 +188,8 @@ class Board:
             )
 
         # Draw placed objects for each arm
-        self.agent_placed_objects.draw(surface=self.canvas)
-        self.robot_placed_objects.draw(surface=self.canvas)
+        self.agent_scorebar.draw(surface=self.canvas)
+        self.robot_scorebar.draw(surface=self.canvas)
 
         # Draw bases for each arm
         self.agent_arm.base.update_image(collision_penalty=collision_penalty)

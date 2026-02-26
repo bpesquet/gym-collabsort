@@ -10,7 +10,7 @@ import numpy as np
 import pygame
 
 from ..board.board import Board
-from ..board.object import Color, Object, Shape
+from ..board.object import Color, Shape
 from ..config import Action, Config
 from .robot import Robot
 
@@ -240,7 +240,7 @@ class CollabSortEnv(gym.Env):
             # Handle robot object
             if robot_placed_object is not None:
                 # Robot arm has placed an object: move it to score bar
-                self._move_to_scorebar(object=robot_placed_object, is_agent=False)
+                self.board.robot_scorebar.add(placed_object=robot_placed_object)
                 # Increment number of objects removed from the board
                 self.n_removed_objects += 1
             elif robot_picked_object is not None:
@@ -252,7 +252,7 @@ class CollabSortEnv(gym.Env):
             # Handle agent object
             if agent_placed_object is not None:
                 # Agent arm has placed an object: move it to score bar
-                self._move_to_scorebar(object=agent_placed_object, is_agent=True)
+                self.board.agent_scorebar.add(placed_object=agent_placed_object)
                 # Increment number of objects removed from the board
                 self.n_removed_objects += 1
             elif agent_picked_object is not None:
@@ -280,34 +280,6 @@ class CollabSortEnv(gym.Env):
             self._render_frame()
 
         return observation, agent_reward, terminated, False, info
-
-    def _move_to_scorebar(self, object: Object, is_agent=True) -> None:
-        """Move a placed object to the agent or robot score bar"""
-
-        if is_agent:
-            placed_objects = self.board.agent_placed_objects
-            # Agent score bar is located below the board
-            y_placed_object = (
-                self.board.agent_arm.base.location_abs[1] + self.config.scorebar_height
-            )
-        else:
-            placed_objects = self.board.robot_placed_objects
-            # Robot score bar is located above the board
-            y_placed_object = (
-                self.board.robot_arm.base.location_abs[1] - self.config.scorebar_height
-            )
-        x_placed_object = (
-            len(placed_objects)
-            * (self.config.board_cell_size + self.config.scorebar_margin)
-            + self.config.board_cell_size // 2
-            + self.config.scorebar_margin
-        )
-
-        # Move placed object to appropriate score bar
-        object.location_abs = (x_placed_object, y_placed_object)
-
-        # Update placed object list for either agent or robot
-        placed_objects.add(object)
 
     def render(self) -> np.ndarray | None:
         if self.render_mode == RenderMode.RGB_ARRAY:
