@@ -25,6 +25,13 @@ class ScoreBar:
         # Number of identical objects. Order matches the one of objects group
         self.n_identical_objects: list[int] = []
 
+    def reset(self) -> None:
+        """Reset the score bar"""
+
+        # Reset lists
+        self.objects.empty()
+        self.n_identical_objects.clear()
+
     def add(self, placed_object: Object) -> None:
         """Add a placed object"""
 
