@@ -4,6 +4,7 @@ Unit tests for environment.
 
 import gymnasium as gym
 import pygame
+from gymnasium.utils.env_checker import check_env
 
 import gym_collabsort
 from gym_collabsort.config import Config, RenderMode
@@ -18,10 +19,16 @@ def test_version() -> None:
     assert gym_collabsort.__version__
 
 
+def test_check_env() -> None:
+    """Test compatibility with Gymnasium API"""
+
+    check_env(CollabSortEnv())
+
+
 def test_render_rgb() -> None:
     """Test RGB rendering"""
 
-    env = CollabSortEnv(Config(render_mode=RenderMode.RGB_ARRAY))
+    env = CollabSortEnv(config=Config(render_mode=RenderMode.RGB_ARRAY))
     env.reset()
 
     env.step(action=env.action_space.sample())

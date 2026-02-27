@@ -7,6 +7,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 import pygame
+from gymnasium.envs.registration import EnvSpec
 
 from ..board.board import Board
 from ..board.object import Color, Shape
@@ -17,11 +18,16 @@ from .robot import Robot
 class CollabSortEnv(gym.Env):
     """Gym environment implementing a collaborative sorting task"""
 
-    # Supported render modes
-    metadata = {"render_modes": [rm.value for rm in RenderMode]}
+    metadata = {
+        # Supported rendering modes
+        "render_modes": [rm.value for rm in RenderMode],
+        # Default FPS for human rendering
+        "render_fps": Config().render_fps,
+    }
 
     def __init__(
         self,
+        render_mode: RenderMode = RenderMode.NONE,
         config: Config | None = None,
     ) -> None:
         """Initialize the environment"""
@@ -29,11 +35,23 @@ class CollabSortEnv(gym.Env):
         if config is None:
             # Use default configuration values
             config = Config()
+            # Use rendering mode provided as constructor arg
+            rm = render_mode
+        else:
+            # Use rendering mode provided by configuration
+            rm = config.render_mode
 
         self.config = config
+        self.render_mode = rm
 
-        assert self.config.render_mode in self.metadata["render_modes"]
-        self.render_mode = self.config.render_mode
+        if self.spec is None:
+            # Duplicate the info provided by register() in root __init__.py file.
+            # Setting env as non-deterministic is mandatory for all check_env() tests to pass
+            self.spec = EnvSpec(
+                id="CollabSort-v0",
+                entry_point="gym_collabsort.envs.env:CollabSortEnv",
+                nondeterministic=True,
+            )
 
         """
         If human-rendering is used, `self.window` will be a reference
