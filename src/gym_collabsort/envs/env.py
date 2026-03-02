@@ -186,8 +186,10 @@ class CollabSortEnv(gym.Env):
     def _get_info(self) -> dict:
         """Return additional information given to the agent"""
 
-        # No additional info
-        return {}
+        return {
+            "n_collisions": self.n_collisions,
+            "n_placed_objects": self.board.agent_arm.n_placed_objects,
+        }
 
     def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
         # Init step reward for agent and robot

@@ -96,6 +96,9 @@ class Arm:
         # Collision penalty status: True after a collision and while gripper hasn't come back to its base
         self.collision_penalty: bool = False
 
+        # Number of placed objects for this arm
+        self.n_placed_objects: int = 0
+
     @property
     def base(self) -> Base:
         """Return the arm base"""
@@ -119,6 +122,11 @@ class Arm:
         """Return True if the arm is moving back to its base after an object pickup or a collision"""
 
         return self.picked_object is not None or self.collision_penalty
+
+    def reset(self) -> None:
+        """Reset arm metrics"""
+
+        self.n_placed_objects = 0
 
     def collide_arm(self, arm: Arm) -> bool:
         """Check if the arm collides with the other arm"""
@@ -234,6 +242,8 @@ class Arm:
                     # Arm has finished moving the object to its base
                     self._picked_object.remove(placed_object)
                     objects.remove(placed_object)
+
+                    self.n_placed_objects += 1
 
         return collision, placed_object
 

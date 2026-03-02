@@ -25,6 +25,18 @@ def test_check_env() -> None:
     check_env(CollabSortEnv())
 
 
+def test_api() -> None:
+    """Test environment API"""
+
+    env = CollabSortEnv()
+    _, info = env.reset()
+
+    assert info["n_collisions"] == 0
+    assert info["n_placed_objects"] == 0
+
+    # TODO test observation format
+
+
 def test_render_rgb() -> None:
     """Test RGB rendering"""
 

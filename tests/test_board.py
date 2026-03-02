@@ -10,9 +10,11 @@ from gym_collabsort.board.board import Board
 def test_board() -> None:
     board = Board(rng=np.random.default_rng())
     assert len(board.objects) == 0
+    assert board.agent_arm.n_placed_objects == 0
 
     board.reset()
     assert len(board.objects) == 0
+    assert board.agent_arm.n_placed_objects == 0
 
     board._add_object()
     assert len(board.objects) == 1

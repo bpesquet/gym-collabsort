@@ -135,6 +135,10 @@ class Board:
         self.agent_scorebar.reset()
         self.robot_scorebar.reset()
 
+        # Reset arms
+        self.agent_arm.reset()
+        self.robot_arm.reset()
+
     def animate(self) -> int:
         """
         Animate the board: move existing objects and possibly add a new one.
