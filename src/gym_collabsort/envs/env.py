@@ -67,11 +67,20 @@ class CollabSortEnv(gym.Env):
         self.board = Board(rng=self.np_random, config=self.config)
 
         # Create robot
-        self.robot = Robot(
-            board=self.board,
-            arm=self.board.robot_arm,
-            rewards=config.robot_rewards,
-        )
+        if self.config.robot_enabled:
+            self.robot = Robot(
+                board=self.board,
+                arm=self.board.robot_arm,
+                rewards=config.robot_rewards,
+                strategy=config.robot_strategy,
+                slow_mode=config.robot_slow_mode,
+                agent_arm=self.board.agent_arm,
+            )
+        else:
+            self.robot = None
+
+        # Total number of environment steps executed since reset
+        self.total_steps: int = 0
 
         # Number of removed objects: placed by any arm or fallen from any treadmill.
         # Used to assess the end of episode
@@ -191,25 +200,50 @@ class CollabSortEnv(gym.Env):
             "n_placed_objects": self.board.agent_arm.n_placed_objects,
         }
 
+    def _get_active_agent_rewards(self) -> np.ndarray:
+        """Return the active agent reward matrix depending on the current step count."""
+
+        if not self.config.enable_reward_change:
+            return self.config.agent_rewards
+
+        if self.total_steps >= self.config.reward_change_step:
+            return self.config.agent_rewards_after
+
+        return self.config.agent_rewards
+
+    @property
+    def current_agent_rewards(self) -> np.ndarray:
+        return self._get_active_agent_rewards()
+
     def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
+        active_agent_rewards = self._get_active_agent_rewards()
+
         # Init step reward for agent and robot
         agent_reward: float = self.config.step_reward
         robot_reward: float = self.config.step_reward
 
         # Apply robot action.
         # Robot can move or pick only if it is not currently moving back to its base
-        robot_action = (
-            self.robot.choose_action()
-            if not self.robot.arm.moving_back
-            else Action.NONE
-        )
-        robot_collision, robot_placed_object, robot_picked_object = (
-            self.board.robot_arm.act(
-                action=robot_action,
-                objects=self.board.objects,
-                other_arm=self.board.agent_arm,
+        if self.config.robot_enabled and self.robot is not None:
+            robot_action = (
+                self.robot.choose_action()
+                if not self.robot.arm.moving_back
+                else Action.NONE
             )
-        )
+            robot_collision, robot_placed_object, robot_picked_object = (
+                self.board.robot_arm.act(
+                    action=robot_action,
+                    objects=self.board.objects,
+                    other_arm=self.board.agent_arm,
+                )
+            )
+        else:
+            robot_action = Action.NONE
+            robot_collision, robot_placed_object, robot_picked_object = (
+                False,
+                None,
+                None,
+            )
 
         # Apply agent action.
         # Agent can move or pick only if it is not currently moving back to its base
@@ -220,7 +254,7 @@ class CollabSortEnv(gym.Env):
             self.board.agent_arm.act(
                 action=agent_action,
                 objects=self.board.objects,
-                other_arm=self.board.robot_arm,
+                other_arm=self.board.robot_arm if self.config.robot_enabled else None,
             )
         )
 
@@ -268,13 +302,22 @@ class CollabSortEnv(gym.Env):
             elif agent_picked_object is not None:
                 # Compute agent reward
                 agent_reward += agent_picked_object.get_reward(
-                    rewards=self.config.agent_rewards
+                    rewards=active_agent_rewards
                 )
 
         # Update world state
         self.n_removed_objects += self.board.animate()
+        if self.config.reward_noise_std > 0:
+            agent_reward += float(
+                self.np_random.normal(
+                    loc=0.0,
+                    scale=self.config.reward_noise_std,
+                )
+            )
+
         self.agent_episode_reward += agent_reward
         self.robot_episode_reward += robot_reward
+        self.total_steps += 1
 
         observation = self._get_obs()
         info = self._get_info()

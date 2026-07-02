@@ -3,7 +3,7 @@ Base types and configuration values.
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 
 import numpy as np
@@ -57,6 +57,25 @@ class RenderMode(StrEnum):
     NONE = "None"
 
 
+class RobotStrategy(Enum):
+    """Possible strategies for the robot to select targets or actions"""
+
+    # Selects the reachable object that yields the highest reward based on the robot's reward matrix
+    BEST_OBJECT = "best_object"
+
+    # Randomly picks any available reachable object on the board as a target
+    RANDOM_OBJECT = "random_object"
+
+    # Targets the reachable object with the smallest Manhattan distance to the robot's gripper
+    CLOSEST_OBJECT = "closest_object"
+
+    # Randomly selects an action (NONE, UP, DOWN, PICK) at each step without targeting an object
+    RANDOM_ACTION = "random_action"
+
+    # Targets the agent's picked object if reachable; otherwise, falls back to the reachable object closest to the agent's gripper
+    AGENT_TARGET = "agent_target"
+
+
 @dataclass
 class Config:
     """Configuration class with default values"""
@@ -67,10 +86,19 @@ class Config:
     # Frames Per Second for environment rendering
     render_fps: int = 5
 
+    # Whether the robot arm is enabled in the environment
+    robot_enabled: bool = True
+
+    # Strategy used by the robot to decide its next action
+    robot_strategy: RobotStrategy = RobotStrategy.BEST_OBJECT
+
+    # Whether the robot acts only every other step
+    robot_slow_mode: bool = False
+
     # ---------- Window and board ----------
 
     # Number of board rows
-    n_rows: int = 10
+    n_rows: int = 11
 
     # Number of board columns
     n_cols: int = 16
@@ -120,11 +148,33 @@ class Config:
 
     # ---------- Treadmills ----------
 
-    # Board row for the uppoer treadmill
-    upper_treadmill_row = 4
+    # Board row for the upper treadmill
+    upper_treadmill_row: int = 4
+
+    # Board row for the middle treadmill (equidistant from robot row 1 and agent row 11)
+    middle_treadmill_row: int = 6
 
     # Board row for the lower treadmill
-    lower_treadmill_row = 7
+    lower_treadmill_row: int = 8
+
+    # Active treadmills: any combination of "upper", "middle", "lower"
+    # Must contain at least one value.
+    active_treadmills: tuple[str, ...] = ("upper", "lower")
+
+    @property
+    def treadmill_rows(self) -> list[int]:
+        """Return the list of row numbers for the active treadmills"""
+
+        row_map = {
+            "upper": self.upper_treadmill_row,
+            "middle": self.middle_treadmill_row,
+            "lower": self.lower_treadmill_row,
+        }
+        return [
+            row_map[name]
+            for name in ("upper", "middle", "lower")
+            if name in self.active_treadmills
+        ]
 
     # Thickness of treadmill delimitation lines in pixels
     treadmill_line_thickness: int = 1
@@ -167,11 +217,28 @@ class Config:
     # Base step reward
     step_reward: float = 0
 
-    # Negative reward when a collision happens
+    # Negative reward when a collision happens.
     collision_penalty: float = -10
 
     # Negative reward for movement
     movement_penalty = -1
+
+    # Standard deviation of Gaussian noise added to the agent reward
+    reward_noise_std: float = 0.0
+
+    # Whether non-stationary rewards enabled in the environment
+    enable_reward_change: bool = False
+
+    # Step threshold at which the agent reward matrix is switched
+    reward_change_step: int = 250000
+
+    agent_rewards_after: np.ndarray = field(
+        default_factory=lambda: np.array([[3, 4, 5], [6, 7, 8], [0, 1, 2]])
+    )
+
+    def __post_init__(self) -> None:
+        if not self.active_treadmills:
+            raise ValueError("active_treadmills must contain at least one value.")
 
     @property
     def agent_rewards(self) -> np.ndarray:
