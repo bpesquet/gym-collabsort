@@ -192,10 +192,9 @@ class Arm:
                 ]
                 # Only one object may be at the same location as the arm gripper
                 if len(pickable_objects) == 1:
-                    # Pick object at current location and remove it from the board
+                    # Pick object at current location
                     picked_object = pickable_objects[0]
                     self._picked_object.add(picked_object)
-                    objects.remove(picked_object)
 
         return collision, placed_object, picked_object
 
