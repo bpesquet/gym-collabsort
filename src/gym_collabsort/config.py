@@ -60,10 +60,19 @@ class RenderMode(StrEnum):
 class RobotStrategy(Enum):
     """Possible strategies for the robot to select targets or actions"""
 
+    # Selects the reachable object that yields the highest reward based on the robot's reward matrix
     BEST_OBJECT = "best_object"
+
+    # Randomly picks any available reachable object on the board as a target
     RANDOM_OBJECT = "random_object"
+
+    # Targets the reachable object with the smallest Manhattan distance to the robot's gripper
     CLOSEST_OBJECT = "closest_object"
+
+    # Randomly selects an action (NONE, UP, DOWN, PICK) at each step without targeting an object
     RANDOM_ACTION = "random_action"
+
+    # Targets the agent's picked object if reachable; otherwise, falls back to the reachable object closest to the agent's gripper
     AGENT_TARGET = "agent_target"
 
 
