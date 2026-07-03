@@ -43,6 +43,23 @@ class Robot:
             return self._choose_random_action()
 
         target_object = self._select_target_object()
+
+        if target_object is None:
+            if (
+                self.strategy == RobotStrategy.AGENT_TARGET
+                and self.agent_arm is not None
+            ):
+                agent_row = self.agent_arm.gripper.coords.row
+                gripper_row = self.arm.gripper.coords.row
+
+                if gripper_row < agent_row:
+                    return Action.DOWN
+                elif gripper_row > agent_row:
+                    return Action.UP
+
+            return Action.NONE
+
+        target_object = self._select_target_object()
         if target_object is None:
             return Action.NONE
 
