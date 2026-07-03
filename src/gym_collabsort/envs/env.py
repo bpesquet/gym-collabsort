@@ -207,8 +207,7 @@ class CollabSortEnv(gym.Env):
             return self.config.agent_rewards
 
         if self.total_steps >= self.config.reward_change_step:
-            # On convertit explicitement le tuple en np.ndarray ici
-            return np.array(self.config.agent_rewards_after)
+            return self.config.agent_rewards_after
 
         return self.config.agent_rewards
 

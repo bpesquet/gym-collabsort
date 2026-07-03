@@ -192,7 +192,7 @@ class Arm:
                 ]
                 # Only one object may be at the same location as the arm gripper
                 if len(pickable_objects) == 1:
-                    # Pick object at current location
+                    # Pick object at current location and remove it from the board
                     picked_object = pickable_objects[0]
                     self._picked_object.add(picked_object)
 
@@ -226,6 +226,7 @@ class Arm:
                 # Change collision penalty status (both grippers will move back to their base)
                 self.collision_penalty = True
 
+                # SÉCURISATION DU TYPEER : On valide que other_arm n'est pas None
                 if other_arm is not None:
                     if not other_arm.is_retracted():
                         # Penalty state is not applied if the other arm is already retracted.
