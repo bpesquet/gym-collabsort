@@ -93,6 +93,9 @@ class CollabSortEnv(gym.Env):
         self.agent_episode_reward: float = 0
         self.robot_episode_reward: float = 0
 
+        # Detailed metrics
+        self.n_fallen_objects_total: int = 0
+
         # Define action format
         self.action_space = gym.spaces.Discrete(len(Action))
 
@@ -162,6 +165,7 @@ class CollabSortEnv(gym.Env):
         self.n_collisions = 0
         self.agent_episode_reward = 0
         self.robot_episode_reward = 0
+        self.n_fallen_objects_total = 0
 
         self.board.reset()
 
@@ -198,6 +202,10 @@ class CollabSortEnv(gym.Env):
         return {
             "n_collisions": self.n_collisions,
             "n_placed_objects": self.board.agent_arm.n_placed_objects,
+            "robot_placed_objects": self.board.robot_arm.n_placed_objects
+            if self.robot
+            else 0,
+            "n_fallen_objects": self.n_fallen_objects_total,
         }
 
     def _get_active_agent_rewards(self) -> np.ndarray:
@@ -264,6 +272,7 @@ class CollabSortEnv(gym.Env):
         if agent_action in (Action.UP, Action.DOWN):
             agent_reward += self.config.movement_penalty
 
+        picked_val = None
         # Handle collisions
         if robot_collision or agent_collision:
             self.n_collisions += 1
@@ -293,7 +302,6 @@ class CollabSortEnv(gym.Env):
                     rewards=self.config.robot_rewards
                 )
 
-            # Handle agent object
             if agent_placed_object is not None:
                 # Agent arm has placed an object: move it to score bar
                 self.board.agent_scorebar.add(placed_object=agent_placed_object)
@@ -301,12 +309,15 @@ class CollabSortEnv(gym.Env):
                 self.n_removed_objects += 1
             elif agent_picked_object is not None:
                 # Compute agent reward
-                agent_reward += agent_picked_object.get_reward(
+                picked_val = agent_picked_object.get_reward(
                     rewards=active_agent_rewards
                 )
+                agent_reward += picked_val
 
         # Update world state
-        self.n_removed_objects += self.board.animate()
+        fallen = self.board.animate()
+        self.n_fallen_objects_total += fallen
+        self.n_removed_objects += fallen
         if self.config.reward_noise_std > 0:
             agent_reward += float(
                 self.np_random.normal(
@@ -321,6 +332,8 @@ class CollabSortEnv(gym.Env):
 
         observation = self._get_obs()
         info = self._get_info()
+        info["agent_picked_value"] = picked_val
+        info["agent_collision"] = agent_collision
 
         # Episode is terminated when all objects have either been placed by an arm or have fallen from a treadmill
         terminated = (
