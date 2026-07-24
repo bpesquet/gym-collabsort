@@ -183,18 +183,17 @@ class Arm:
                 row_offset=1, objects=objects, other_arm=other_arm
             )
 
-        elif action == Action.PICK:
-            # Only check for a pickable object if no object has already been picked
-            if self.picked_object is None:
-                # Check if the gripper can pick an object at current location
-                pickable_objects = [
-                    obj for obj in objects if obj.location == self.gripper.location
-                ]
-                # Only one object may be at the same location as the arm gripper
-                if len(pickable_objects) == 1:
-                    # Pick object at current location
-                    picked_object = pickable_objects[0]
-                    self._picked_object.add(picked_object)
+        # Only check for a pickable object if no object has already been picked
+        elif action == Action.PICK and self.picked_object is None:
+            # Check if the gripper can pick an object at current location
+            pickable_objects = [
+                obj for obj in objects if obj.location == self.gripper.location
+            ]
+            # Only one object may be at the same location as the arm gripper
+            if len(pickable_objects) == 1:
+                # Pick object at current location
+                picked_object = pickable_objects[0]
+                self._picked_object.add(picked_object)
 
         return collision, placed_object, picked_object
 

@@ -2,8 +2,7 @@
 Score bar definitions.
 """
 
-import pygame.freetype as freetype
-from pygame import Surface
+from pygame import Surface, freetype
 from pygame.sprite import Group
 
 from ..config import Color, Config

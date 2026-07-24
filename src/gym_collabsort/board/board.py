@@ -4,7 +4,7 @@ The environment board and its content.
 
 import numpy as np
 import pygame
-import pygame.freetype as freetype
+from pygame import freetype
 from pygame.math import Vector2
 from pygame.sprite import Group
 
@@ -26,7 +26,7 @@ class Board:
         self.config = config
 
         # Init the text rendering objects
-        pygame.freetype.init()
+        freetype.init()
         self.agent_reward_text = freetype.Font(None)
         self.robot_reward_text = freetype.Font(None)
         self.collision_text = freetype.Font(None)

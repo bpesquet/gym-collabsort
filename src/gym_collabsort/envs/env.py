@@ -18,7 +18,7 @@ from .robot import Robot
 class CollabSortEnv(gym.Env):
     """Gym environment implementing a collaborative sorting task"""
 
-    metadata = {
+    metadata = {  # noqa: RUF012 (overrides gym.Env's instance attribute, not a class attribute)
         # Supported rendering modes
         "render_modes": [rm.value for rm in RenderMode],
         # Default FPS for human rendering

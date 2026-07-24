@@ -2,12 +2,13 @@
 Unit tests for environment.
 """
 
-import gymnasium as gym
-import pygame
-from gymnasium.utils.env_checker import check_env
-import numpy as np
-import pytest
 from unittest.mock import MagicMock, PropertyMock, patch
+
+import gymnasium as gym
+import numpy as np
+import pygame
+import pytest
+from gymnasium.utils.env_checker import check_env
 
 import gym_collabsort
 from gym_collabsort.config import Action, Config, RenderMode
@@ -180,9 +181,7 @@ def test_disabled_robot_env() -> None:
 
     # Step the environment
     for _ in range(20):
-        obs, reward, terminated, truncated, info = env.step(
-            action=env.action_space.sample()
-        )
+        obs, _, _, _, info = env.step(action=env.action_space.sample())
         # Robot position must remain retracted
         assert (obs["robot"] == [1, 4]).all()
         # No collisions should ever occur because the robot arm is not active

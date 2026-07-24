@@ -2,13 +2,14 @@
 Unit tests for robot.
 """
 
+from unittest.mock import MagicMock
+
 import numpy as np
 
 from gym_collabsort.board.object import Color, Shape
 from gym_collabsort.config import Action, Config, RenderMode, RobotStrategy
 from gym_collabsort.envs.env import CollabSortEnv
 from gym_collabsort.envs.robot import Robot
-from unittest.mock import MagicMock
 
 
 def test_robot_supports_multiple_strategies() -> None:
@@ -154,6 +155,7 @@ def test_random_object_strategy_selects_a_reachable_object() -> None:
     env.reset(seed=0)
 
     from pygame.math import Vector2
+
     from gym_collabsort.board.object import Object
 
     env.board.objects.empty()
@@ -188,6 +190,7 @@ def test_agent_target_strategy_uses_agent_position_when_no_explicit_target() -> 
     env.reset(seed=0)
 
     from pygame.math import Vector2
+
     from gym_collabsort.board.object import Object
 
     env.board.objects.empty()
