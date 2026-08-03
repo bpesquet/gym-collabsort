@@ -301,6 +301,9 @@ class CollabSortEnv(gym.Env):
                 robot_reward += robot_picked_object.get_reward(
                     rewards=self.config.robot_rewards
                 )
+            elif robot_action == Action.PICK:
+                # Robot has tried a PICK action unsuccessfully: add negative reward
+                robot_reward += self.config.failed_action_penalty
 
             if agent_placed_object is not None:
                 # Agent arm has placed an object: move it to score bar
@@ -313,6 +316,9 @@ class CollabSortEnv(gym.Env):
                     rewards=active_agent_rewards
                 )
                 agent_reward += picked_val
+            elif agent_action == Action.PICK:
+                # Agent has tried a PICK action unsuccessfully: add negative reward
+                agent_reward += self.config.failed_action_penalty
 
         # Update world state
         fallen = self.board.animate()

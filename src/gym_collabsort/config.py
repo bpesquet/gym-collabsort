@@ -221,7 +221,10 @@ class Config:
     collision_penalty: float = -10
 
     # Negative reward for movement
-    movement_penalty = -1
+    movement_penalty: float = -1
+
+    # Negative reward for a failed action (useless PICK)
+    failed_action_penalty: float = -5
 
     # Standard deviation of Gaussian noise added to the agent reward
     reward_noise_std: float = 0.0
