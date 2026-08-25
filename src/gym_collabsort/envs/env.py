@@ -114,7 +114,7 @@ class CollabSortEnv(gym.Env):
         return gym.spaces.Dict(
             {
                 "coords": self._get_coords_space(),
-                "picked_object": gym.spaces.Discrete(1),
+                "picked_object": gym.spaces.Discrete(2),
             }
         )
 
