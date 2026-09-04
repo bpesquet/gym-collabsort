@@ -102,19 +102,20 @@ class CollabSortEnv(gym.Env):
         # Define observation format. See _get_obs() method for details
         self.observation_space = gym.spaces.Dict(
             {
-                "self": self._get_agent_space(),
+                "self": self._get_arm_space(),
                 "moving_objects": gym.spaces.Sequence(self._get_object_space()),
-                "robot": self._get_coords_space(),
+                "robot": self._get_arm_space(),
             }
         )
 
-    def _get_agent_space(self) -> gym.spaces.Space:
-        """Helper method to create a Dict space (coordinates and presence of a picked object) for the agent"""
+    def _get_arm_space(self) -> gym.spaces.Space:
+        """Helper method to create a Dict space (coordinates, picked object, collision penalty) for the agent"""
 
         return gym.spaces.Dict(
             {
                 "coords": self._get_coords_space(),
                 "picked_object": gym.spaces.Discrete(2),
+                "collision_penalty": gym.spaces.Discrete(2),
             }
         )
 
@@ -191,9 +192,18 @@ class CollabSortEnv(gym.Env):
             "self": {
                 "coords": self.board.agent_arm.gripper.coords.as_vector(),
                 "picked_object": int(self.board.agent_arm.picked_object is not None),
+                "collision_penalty": int(
+                    self.board.agent_arm.collision_penalty is not None
+                ),
             },
             "moving_objects": objects,
-            "robot": self.board.robot_arm.gripper.coords.as_vector(),
+            "robot": {
+                "coords": self.board.robot_arm.gripper.coords.as_vector(),
+                "picked_object": int(self.board.robot_arm.picked_object is not None),
+                "collision_penalty": int(
+                    self.board.robot_arm.collision_penalty is not None
+                ),
+            },
         }
 
     def _get_info(self) -> dict:

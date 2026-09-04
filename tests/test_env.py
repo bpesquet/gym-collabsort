@@ -59,7 +59,7 @@ def test_render_rgb() -> None:
 def test_random_agent() -> None:
     """Test an agent choosing random actions"""
 
-    env = gym.make("CollabSort-v0")
+    env = gym.make("CollabSort-v1")
     env.reset()
 
     for _ in range(60):
@@ -177,13 +177,13 @@ def test_disabled_robot_env() -> None:
     assert "moving_objects" in obs
 
     # Robot coordinates should still be returned, corresponding to robot retracted base location [1, 4]
-    assert (obs["robot"] == [1, 4]).all()
+    assert (obs["robot"]["coords"] == [1, 4]).all()
 
     # Step the environment
     for _ in range(20):
         obs, _, _, _, info = env.step(action=env.action_space.sample())
         # Robot position must remain retracted
-        assert (obs["robot"] == [1, 4]).all()
+        assert (obs["robot"]["coords"] == [1, 4]).all()
         # No collisions should ever occur because the robot arm is not active
         assert info["n_collisions"] == 0
 

@@ -171,7 +171,7 @@ class Arm:
                     row_offset=1, objects=objects, other_arm=other_arm
                 )
 
-        if action == Action.UP:
+        elif action == Action.UP:
             # Move the gripper up (no possible object placement)
             collision, _ = self._move(
                 row_offset=-1, objects=objects, other_arm=other_arm
