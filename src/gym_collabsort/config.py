@@ -215,7 +215,7 @@ class Config:
     # ---------- Rewards ----------
 
     # Base step reward
-    step_reward: float = 0
+    step_reward: float = -0.1
 
     # Negative reward when a collision happens.
     collision_penalty: float = -10
@@ -224,7 +224,7 @@ class Config:
     movement_penalty: float = -1
 
     # Negative reward for a failed action (useless PICK)
-    failed_action_penalty: float = -5
+    failed_action_penalty: float = -2
 
     # Standard deviation of Gaussian noise added to the agent reward
     reward_noise_std: float = 0.0
@@ -238,7 +238,7 @@ class Config:
     # Prevent ValueError during dataclass comparison in tests;
     # NumPy arrays return ambiguous truth values for element-wise equality.
     agent_rewards_after: np.ndarray = field(
-        default_factory=lambda: np.array([[3, 4, 5], [6, 7, 8], [0, 1, 2]]),
+        default_factory=lambda: np.array([[11, 12, 13], [14, 15, 13], [8, 9, 10]]),
         compare=False,
     )
 
@@ -251,11 +251,11 @@ class Config:
         """Return the rewards array associated to object properties for the agent"""
 
         # Rows are indiced by object color, columns by object shape
-        return np.array([[8, 7, 6], [5, 4, 3], [2, 1, 0]])
+        return np.array([[13, 12, 11], [16, 15, 14], [10, 9, 8]])
 
     @property
     def robot_rewards(self) -> np.ndarray:
         """Return the rewards array associated to object properties for the robot"""
 
         # Rows are indiced by object color, columns by object shape
-        return np.array([[5, 4, 3], [8, 7, 6], [2, 1, 0]])
+        return np.array([[16, 15, 14], [13, 12, 11], [10, 9, 8]])

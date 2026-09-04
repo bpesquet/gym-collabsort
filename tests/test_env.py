@@ -97,7 +97,7 @@ def test_reward_noise_not_applied_when_zero() -> None:
 
     rewards = [env.step(action=Action.NONE.value)[1] for _ in range(100)]
 
-    assert np.std(rewards) == 0.0
+    assert np.isclose(np.std(rewards), 0.0)
 
 
 def test_reward_change_step_switches_matrices() -> None:
