@@ -109,7 +109,7 @@ class CollabSortEnv(gym.Env):
         )
 
     def _get_arm_space(self) -> gym.spaces.Space:
-        """Helper method to create a Dict space (coordinates, picked object, collision penalty) for the agent"""
+        """Helper method to create a Dict space (coordinates, picked object, collision penalty) for the agent or robot"""
 
         return gym.spaces.Dict(
             {
@@ -192,17 +192,13 @@ class CollabSortEnv(gym.Env):
             "self": {
                 "coords": self.board.agent_arm.gripper.coords.as_vector(),
                 "picked_object": int(self.board.agent_arm.picked_object is not None),
-                "collision_penalty": int(
-                    self.board.agent_arm.collision_penalty is not None
-                ),
+                "collision_penalty": int(self.board.agent_arm.collision_penalty),
             },
             "moving_objects": objects,
             "robot": {
                 "coords": self.board.robot_arm.gripper.coords.as_vector(),
                 "picked_object": int(self.board.robot_arm.picked_object is not None),
-                "collision_penalty": int(
-                    self.board.robot_arm.collision_penalty is not None
-                ),
+                "collision_penalty": int(self.board.robot_arm.collision_penalty),
             },
         }
 
