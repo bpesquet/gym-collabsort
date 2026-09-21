@@ -203,15 +203,23 @@ class CollabSortEnv(gym.Env):
         }
 
     def _get_info(self) -> dict:
-        """Return additional information given to the agent"""
+        """Return additional information about the episode"""
 
         return {
+            # Number of objects added to the board
+            "n_objects": self.board.n_added_objects,
+            # Number of collisions
             "n_collisions": self.n_collisions,
-            "n_placed_objects": self.board.agent_arm.n_placed_objects,
-            "robot_placed_objects": self.board.robot_arm.n_placed_objects
-            if self.robot
-            else 0,
+            # Number of missed objects (fallen from a treadmill)
             "n_fallen_objects": self.n_fallen_objects_total,
+            # Number of objects placed (collected) by the agent
+            "n_agent_placed_objects": self.board.agent_arm.n_placed_objects,
+            # Number of objects placed (collected) by the robot (if any)
+            "n_robot_placed_objects": self.board.robot_arm.n_placed_objects
+            if self.robot
+            else 0.0,
+            # Cumulative robot reward (if any)
+            "robot_ep_reward": self.robot_episode_reward if self.robot else 0.0,
         }
 
     def _get_active_agent_rewards(self) -> np.ndarray:
