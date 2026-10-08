@@ -161,6 +161,9 @@ class CollabSortEnv(gym.Env):
         # Init the RNG
         super().reset(seed=seed, options=options)
 
+        # Seeding replaces the RNG: share the new one with the board
+        self.board.rng = self.np_random
+
         # Reset episode metrics
         self.n_removed_objects = 0
         self.n_collisions = 0
