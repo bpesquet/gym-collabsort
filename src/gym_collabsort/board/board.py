@@ -104,8 +104,10 @@ class Board:
         obj_y: float = (chosen_row - 0.5) * self.config.board_cell_size
 
         # Randomly generate object attributes
-        obj_color: Color = self.rng.choice(list(Color))
-        obj_shape: Shape = self.rng.choice(list(Shape))
+        colors = list(Color)
+        shapes = list(Shape)
+        obj_color: Color = colors[self.rng.choice(len(colors))]
+        obj_shape: Shape = shapes[self.rng.choice(len(shapes))]
 
         new_obj = Object(
             location=Vector2(
