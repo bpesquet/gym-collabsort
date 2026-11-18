@@ -231,10 +231,31 @@ class CollabSortEnv(gym.Env):
         if not self.config.enable_reward_change:
             return self.config.agent_rewards
 
-        if self.total_steps >= self.config.reward_change_step:
+        if self.reward_changed:
+            if self.config.reward_change_type == "flip_best":
+                return self.config.agent_rewards_flipped
             return self.config.agent_rewards_after
 
         return self.config.agent_rewards
+
+    @property
+    def reward_changed(self) -> bool:
+        """Return whether the agent reward matrix is currently the changed one"""
+
+        if (
+            not self.config.enable_reward_change
+            or self.total_steps < self.config.reward_change_step
+        ):
+            return False
+
+        if self.config.reward_change_period is None:
+            return True
+
+        # Periodic reversals: changed during even periods, initial during odd ones
+        n_periods = (
+            self.total_steps - self.config.reward_change_step
+        ) // self.config.reward_change_period
+        return n_periods % 2 == 0
 
     @property
     def current_agent_rewards(self) -> np.ndarray:
@@ -357,6 +378,8 @@ class CollabSortEnv(gym.Env):
         info = self._get_info()
         info["agent_picked_value"] = picked_val
         info["agent_collision"] = agent_collision
+        # Whether the agent rewards have changed (for analysis only, not part of the observation)
+        info["reward_changed"] = self.reward_changed
 
         # Episode is terminated when all objects have either been placed by an arm or have fallen from a treadmill
         terminated = (

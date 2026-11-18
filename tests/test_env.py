@@ -36,7 +36,8 @@ def test_api() -> None:
     _, info = env.reset()
 
     assert info["n_collisions"] == 0
-    assert info["n_placed_objects"] == 0
+    assert info["n_agent_placed_objects"] == 0
+    assert info["n_robot_placed_objects"] == 0
 
     # TODO test observation format
 
@@ -130,6 +131,78 @@ def test_reward_change_step_switches_matrices() -> None:
     assert np.array_equal(env.current_agent_rewards, agent_rewards_after)
 
 
+def test_reward_change_flip_best() -> None:
+    """Test that the "flip_best" reward change negates the most valuable object color."""
+
+    config = Config(
+        render_mode=RenderMode.RGB_ARRAY,
+        robot_enabled=False,
+        enable_reward_change=True,
+        reward_change_step=3,
+        reward_change_type="flip_best",
+    )
+    env = CollabSortEnv(config=config)
+    env.reset(seed=0)
+
+    for _ in range(2):
+        _, _, _, _, info = env.step(action=Action.NONE.value)
+    assert not info["reward_changed"]
+    assert np.array_equal(env.current_agent_rewards, config.agent_rewards)
+
+    _, _, _, _, info = env.step(action=Action.NONE.value)
+    assert info["reward_changed"]
+
+    # Best color (highest row sum) is negated, other colors are unchanged
+    rewards_before = config.agent_rewards
+    best_color = np.argmax(rewards_before.sum(axis=1))
+    rewards_after = env.current_agent_rewards
+    for color in range(rewards_before.shape[0]):
+        expected = rewards_before[color] * (-1 if color == best_color else 1)
+        assert np.array_equal(rewards_after[color], expected)
+    assert np.all(rewards_after[best_color] < 0)
+
+
+def test_reward_change_period_alternates_matrices() -> None:
+    """Test that rewards alternate between changed and initial matrices when a period is set."""
+
+    config = Config(
+        render_mode=RenderMode.RGB_ARRAY,
+        robot_enabled=False,
+        enable_reward_change=True,
+        reward_change_step=2,
+        reward_change_type="flip_best",
+        reward_change_period=3,
+    )
+    env = CollabSortEnv(config=config)
+    env.reset(seed=0)
+
+    # total_steps after each step: 1..11
+    # Initial until step 2, then changed for 3 steps, initial for 3 steps, and so on
+    expected = [False, True, True, True, False, False, False, True, True, True, False]
+    observed = []
+    for _ in expected:
+        _, _, _, _, info = env.step(action=Action.NONE.value)
+        observed.append(info["reward_changed"])
+        expected_rewards = (
+            config.agent_rewards_flipped if observed[-1] else config.agent_rewards
+        )
+        assert np.array_equal(env.current_agent_rewards, expected_rewards)
+
+    assert observed == expected
+
+
+def test_reward_changed_info_without_reward_change() -> None:
+    """Test that rewards are never reported as changed when reward change is disabled."""
+
+    config = Config(render_mode=RenderMode.RGB_ARRAY, robot_enabled=False)
+    env = CollabSortEnv(config=config)
+    env.reset(seed=0)
+
+    for _ in range(3):
+        _, _, _, _, info = env.step(action=Action.NONE.value)
+        assert not info["reward_changed"]
+
+
 def test_robotic_agent(pause_at_end: bool = False) -> None:
     """Test an agent using the same behavior as the robot, but with specific rewards"""
 
@@ -168,7 +241,8 @@ def test_disabled_robot_env() -> None:
     obs, info = env.reset()
 
     assert info["n_collisions"] == 0
-    assert info["n_placed_objects"] == 0
+    assert info["n_agent_placed_objects"] == 0
+    assert info["n_robot_placed_objects"] == 0
     assert env.robot is None
 
     # Check observation format

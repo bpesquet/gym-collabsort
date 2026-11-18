@@ -5,6 +5,7 @@ Base types and configuration values.
 import math
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
+from typing import Literal
 
 import numpy as np
 
@@ -235,6 +236,17 @@ class Config:
     # Step threshold at which the agent reward matrix is switched
     reward_change_step: int = 250000
 
+    # How the agent reward matrix changes at reward_change_step:
+    # - "matrix": switch to agent_rewards_after.
+    # - "flip_best": negate the rewards of the agent's most valuable object color,
+    #   so that the formerly best objects become harmful (strong change).
+    reward_change_type: Literal["matrix", "flip_best"] = "matrix"
+
+    # If set, agent rewards alternate between the changed and initial matrices
+    # every reward_change_period steps after reward_change_step (reversals).
+    # If None, the change happens only once.
+    reward_change_period: int | None = None
+
     # Prevent ValueError during dataclass comparison in tests;
     # NumPy arrays return ambiguous truth values for element-wise equality.
     agent_rewards_after: np.ndarray = field(
@@ -252,6 +264,15 @@ class Config:
 
         # Rows are indiced by object color, columns by object shape
         return np.array([[13, 12, 11], [16, 15, 14], [10, 9, 8]])
+
+    @property
+    def agent_rewards_flipped(self) -> np.ndarray:
+        """Return the agent rewards array with the most valuable object color negated"""
+
+        rewards = self.agent_rewards.copy()
+        best_color = np.argmax(rewards.sum(axis=1))
+        rewards[best_color] = -rewards[best_color]
+        return rewards
 
     @property
     def robot_rewards(self) -> np.ndarray:
