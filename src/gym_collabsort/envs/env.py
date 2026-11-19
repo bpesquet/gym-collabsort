@@ -48,7 +48,7 @@ class CollabSortEnv(gym.Env):
             # Duplicate the info provided by register() in root __init__.py file.
             # Setting env as non-deterministic is mandatory for all check_env() tests to pass
             self.spec = EnvSpec(
-                id="CollabSort-v0",
+                id="CollabSort-v1",
                 entry_point="gym_collabsort.envs.env:CollabSortEnv",
                 nondeterministic=True,
             )
@@ -433,5 +433,4 @@ class CollabSortEnv(gym.Env):
     def close(self) -> None:
         if self.window:
             pygame.display.quit()
-            pygame.quit()
             pygame.quit()

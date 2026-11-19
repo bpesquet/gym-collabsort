@@ -81,7 +81,7 @@ class RobotStrategy(Enum):
 class Config:
     """Configuration class with default values"""
 
-    # Redering mode for the environment
+    # Rendering mode for the environment
     render_mode: RenderMode = RenderMode.NONE
 
     # Frames Per Second for environment rendering

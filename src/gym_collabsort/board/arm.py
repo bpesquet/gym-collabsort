@@ -66,8 +66,6 @@ class Gripper(Sprite):
             transparent_background=True,
         )
 
-        self.config = config
-
         pygame.draw.circle(
             surface=self.image,
             color="black",
