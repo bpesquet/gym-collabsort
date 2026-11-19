@@ -142,7 +142,7 @@ class Config:
         )
 
     # Title of the main window
-    window_title = "gym-collabsort - A collaborative sorting task"
+    window_title: str = "gym-collabsort - A collaborative sorting task"
 
     # Background color of the window
     background_color: str = "white"
@@ -194,8 +194,11 @@ class Config:
     # Thickness of the line between arm base and gripper in pixels
     arm_line_thickness: int = 7
 
-    # Size (height & width) of the agent and robot grippers in pixels
-    arm_gripper_size: int = board_cell_size // 2
+    @property
+    def arm_gripper_size(self) -> int:
+        """Return the size (height & width) of the agent and robot grippers in pixels"""
+
+        return self.board_cell_size // 2
 
     # ---------- Displayed messages ----------
 
@@ -211,7 +214,7 @@ class Config:
     n_objects: float = math.inf
 
     # Probability of adding a new object at each time step
-    new_object_proba = 0.25
+    new_object_proba: float = 0.25
 
     # ---------- Rewards ----------
 
