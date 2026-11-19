@@ -63,7 +63,7 @@ def test_render_rgb() -> None:
 def test_random_agent() -> None:
     """Test an agent choosing random actions"""
 
-    env = gym.make("CollabSort-v1")
+    env = gym.make("CollabSort-v2")
     env.reset()
 
     for _ in range(60):
@@ -438,6 +438,134 @@ def test_config_fields() -> None:
 
     assert config.new_object_proba == 0.5
     assert config.arm_gripper_size == 50
+
+
+EVENT_KEYS = (
+    "agent_picked_object_id",
+    "agent_picked_object_value",
+    "agent_failed_pick",
+    "robot_picked_object_id",
+    "robot_picked_object_value",
+    "robot_failed_pick",
+    "collision",
+    "agent_placed_object_id",
+    "robot_placed_object_id",
+    "dropped_object_ids",
+    "fallen_object_ids",
+)
+
+
+def test_registration() -> None:
+    """Test environment registration and per-step event info"""
+
+    env = gym.make("CollabSort-v2")
+    assert isinstance(env.unwrapped, CollabSortEnv)
+    assert env.spec is not None and env.spec.id == "CollabSort-v2"
+    direct_spec = CollabSortEnv().spec
+    assert direct_spec is not None and direct_spec.id == "CollabSort-v2"
+
+    env.reset(seed=0)
+    for _ in range(30):
+        obs, _, _, _, info = env.step(Action.NONE.value)
+    assert all(key in info for key in EVENT_KEYS)
+    assert len(obs["moving_objects"]) > 0
+    assert all("id" in obj for obj in obs["moving_objects"])
+
+    env.close()
+
+
+def test_stable_object_ids() -> None:
+    """Test that object IDs are unique and stable while objects move"""
+
+    env = CollabSortEnv(
+        config=Config(render_mode=RenderMode.RGB_ARRAY, robot_enabled=False)
+    )
+    obs, _ = env.reset(seed=0)
+
+    seen_cols: dict[int, int] = {}
+    for _ in range(100):
+        obs, _, _, _, info = env.step(Action.NONE.value)
+        ids = [int(obj["id"]) for obj in obs["moving_objects"]]
+        assert len(ids) == len(set(ids))
+        for obj in obs["moving_objects"]:
+            obj_id, col = int(obj["id"]), int(obj["coords"][1])
+            if obj_id in seen_cols:
+                # Same object, moved one column left
+                assert col == seen_cols[obj_id] - 1
+            seen_cols[obj_id] = col
+        for obj_id in info["fallen_object_ids"]:
+            assert obj_id in seen_cols
+            assert obj_id not in ids
+
+    assert len(seen_cols) > 1
+    env.close()
+
+
+def test_pick_and_place_events() -> None:
+    """Test pick, failed pick and placement events"""
+
+    config = Config(
+        render_mode=RenderMode.RGB_ARRAY,
+        robot_enabled=False,
+        n_objects=1,
+        new_object_proba=0,
+    )
+    env = CollabSortEnv(config=config)
+    env.reset(seed=0)
+    agent_arm = env.board.agent_arm
+
+    # Nothing under the gripper: failed pick
+    _, _, _, _, info = env.step(Action.PICK.value)
+    assert info["agent_failed_pick"]
+    assert info["agent_picked_object_id"] is None
+
+    # Put an object just above the gripper, then pick it
+    agent_arm.gripper.move(row_offset=-1)
+    obj = Object(
+        location=agent_arm.gripper.location,
+        config=env.config,
+        color=Color.RED,
+        shape=Shape.SQUARE,
+        id=42,
+    )
+    env.board.objects.add(obj)
+    env.board.n_added_objects += 1
+    _, _, _, _, info = env.step(Action.PICK.value)
+    assert not info["agent_failed_pick"]
+    assert info["agent_picked_object_id"] == 42
+    assert info["agent_picked_object_value"] == obj.get_reward(config.agent_rewards)
+    assert info["agent_placed_object_id"] is None
+
+    # Arm moves back to its base and places the object
+    _, _, terminated, _, info = env.step(Action.NONE.value)
+    assert info["agent_placed_object_id"] == 42
+    assert info["agent_picked_object_id"] is None
+    assert info["dropped_object_ids"] == ()
+    assert terminated
+
+    env.close()
+
+
+def test_collision_events() -> None:
+    """Test collision and dropped object events"""
+
+    config = Config(render_mode=RenderMode.RGB_ARRAY, n_objects=1, new_object_proba=0)
+    env = CollabSortEnv(config=config)
+    env.reset(seed=0)
+    agent_arm, robot_arm = env.board.agent_arm, env.board.robot_arm
+
+    agent_arm.gripper.move(row_offset=-5)
+    robot_arm.gripper.move(row_offset=6)
+    obj = _give_object(env=env, arm=agent_arm)
+    obj.id = 7
+
+    with patch.object(env.robot, "choose_action", return_value=Action.NONE):
+        _, _, _, _, info = env.step(Action.NONE.value)
+    assert info["collision"]
+    assert info["dropped_object_ids"] == (7,)
+    assert info["agent_placed_object_id"] is None
+
+    env.close()
 
 
 if __name__ == "__main__":

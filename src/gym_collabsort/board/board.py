@@ -42,6 +42,13 @@ class Board:
         # Number of added objects since the beginning of the episode
         self.n_added_objects: int = 0
 
+        # Identifier given to the next added object.
+        # Never reset, since objects remain on the board across episodes
+        self.next_object_id: int = 0
+
+        # Objects which have fallen from a treadmill during the last call to animate()
+        self.last_fallen_objects: list[Object] = []
+
         # Create agent and robot arms
         self.agent_arm = Arm(
             location=Vector2(
@@ -117,7 +124,9 @@ class Board:
             color=obj_color,
             shape=obj_shape,
             config=self.config,
+            id=self.next_object_id,
         )
+        self.next_object_id += 1
         self.objects.add(new_obj)
         self.n_added_objects += 1
 
@@ -141,8 +150,7 @@ class Board:
         Return the number of fallen objects
         """
 
-        # Number of object which have fallen from any treadmill after this movement
-        n_fallen_objects: int = 0
+        self.last_fallen_objects = []
 
         # Move all non-picked objects from right to left on their treadmill
         for obj in self.moving_objects:
@@ -152,7 +160,7 @@ class Board:
                 # Object has fallen from the treadmill before being picked
                 self.objects.remove(obj)
 
-                n_fallen_objects += 1
+                self.last_fallen_objects.append(obj)
 
         # Add a new object according to probability if limit has not been reached yet
         if (
@@ -161,7 +169,7 @@ class Board:
         ):
             self._add_object()
 
-        return n_fallen_objects
+        return len(self.last_fallen_objects)
 
     def draw(
         self,

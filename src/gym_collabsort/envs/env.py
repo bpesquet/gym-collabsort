@@ -2,6 +2,7 @@
 Gym environment for a collaborative sorting task.
 """
 
+from dataclasses import dataclass, field
 from typing import Any
 
 import gymnasium as gym
@@ -10,13 +11,52 @@ import pygame
 from gymnasium.envs.registration import EnvSpec
 
 from ..board.board import Board
-from ..board.object import Color, Shape
+from ..board.object import Color, Object, Shape
 from ..config import Action, Config, RenderMode
 from .robot import Robot
 
 
+@dataclass
+class StepEvents:
+    """Events which happened during the last environment step"""
+
+    # Object picked by each arm (if any) and its value under the arm's rewards.
+    # If a collision happens during the same step, the pick reward is not credited
+    # and the object also appears in dropped_object_ids
+    agent_picked_object: Object | None = None
+    agent_picked_object_value: float | None = None
+    robot_picked_object: Object | None = None
+    robot_picked_object_value: float | None = None
+
+    # PICK action applied with no object under the gripper
+    agent_failed_pick: bool = False
+    robot_failed_pick: bool = False
+
+    # Collision between arms
+    collision: bool = False
+
+    # Object placed by each arm in its base (if any)
+    agent_placed_object: Object | None = None
+    robot_placed_object: Object | None = None
+
+    # Objects dropped by any arm because of a collision
+    dropped_objects: list[Object] = field(default_factory=list)
+
+    # Objects fallen from a treadmill
+    fallen_objects: list[Object] = field(default_factory=list)
+
+
+def _get_id(obj: Object | None) -> int | None:
+    """Return the ID of an object, or None if there is no object"""
+
+    return obj.id if obj is not None else None
+
+
 class CollabSortEnv(gym.Env):
     """Gym environment implementing a collaborative sorting task"""
+
+    # Upper bound for object IDs in the observation space
+    max_object_id: int = np.iinfo(np.int32).max
 
     metadata = {  # noqa: RUF012 (overrides gym.Env's instance attribute, not a class attribute)
         # Supported rendering modes
@@ -48,7 +88,7 @@ class CollabSortEnv(gym.Env):
             # Duplicate the info provided by register() in root __init__.py file.
             # Setting env as non-deterministic is mandatory for all check_env() tests to pass
             self.spec = EnvSpec(
-                id="CollabSort-v1",
+                id="CollabSort-v2",
                 entry_point="gym_collabsort.envs.env:CollabSortEnv",
                 nondeterministic=True,
             )
@@ -91,6 +131,9 @@ class CollabSortEnv(gym.Env):
 
         # Detailed metrics
         self.n_fallen_objects_total: int = 0
+
+        # Events of the last step
+        self.last_events = StepEvents()
 
         # Define action format
         self.action_space = gym.spaces.Discrete(len(Action))
@@ -139,6 +182,10 @@ class CollabSortEnv(gym.Env):
                 "coords": self._get_coords_space(),
                 "color": gym.spaces.Discrete(n=len(Color)),
                 "shape": gym.spaces.Discrete(n=len(Shape)),
+                # Stable object identifier
+                "id": gym.spaces.Box(
+                    low=0, high=self.max_object_id, shape=(), dtype=np.int64
+                ),
             }
         )
 
@@ -177,6 +224,7 @@ class CollabSortEnv(gym.Env):
         self.agent_episode_reward = 0
         self.robot_episode_reward = 0
         self.n_fallen_objects_total = 0
+        self.last_events = StepEvents()
 
         self.board.reset()
 
@@ -274,6 +322,13 @@ class CollabSortEnv(gym.Env):
     def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
         active_agent_rewards = self._get_active_agent_rewards()
 
+        # Objects held before acting, which might be dropped because of a collision
+        held_objects = [
+            arm.picked_object
+            for arm in (self.board.agent_arm, self.board.robot_arm)
+            if arm.picked_object is not None
+        ]
+
         # Init step reward for agent and robot
         agent_reward: float = self.config.step_reward
         robot_reward: float = self.config.step_reward
@@ -357,8 +412,41 @@ class CollabSortEnv(gym.Env):
                 # Agent has tried a PICK action unsuccessfully: add negative reward
                 agent_reward += self.config.failed_action_penalty
 
+        # Record step events
+        events = StepEvents(
+            agent_failed_pick=agent_action == Action.PICK
+            and agent_picked_object is None,
+            robot_failed_pick=robot_action == Action.PICK
+            and robot_picked_object is None,
+            collision=robot_collision or agent_collision,
+            agent_placed_object=agent_placed_object,
+            robot_placed_object=robot_placed_object,
+        )
+        if agent_picked_object is not None:
+            events.agent_picked_object = agent_picked_object
+            events.agent_picked_object_value = agent_picked_object.get_reward(
+                rewards=active_agent_rewards
+            )
+        if robot_picked_object is not None:
+            events.robot_picked_object = robot_picked_object
+            events.robot_picked_object_value = robot_picked_object.get_reward(
+                rewards=self.config.robot_rewards
+            )
+        # Dropped objects have been removed from the board without being placed
+        for obj in (*held_objects, agent_picked_object, robot_picked_object):
+            if (
+                obj is not None
+                and obj not in self.board.objects
+                and obj not in (agent_placed_object, robot_placed_object)
+                and obj not in events.dropped_objects
+            ):
+                events.dropped_objects.append(obj)
+
         # Update world state
         fallen = self.board.animate()
+        events.fallen_objects = list(self.board.last_fallen_objects)
+        self.last_events = events
+
         self.n_fallen_objects_total += fallen
         if self.config.reward_noise_std > 0:
             agent_reward += float(
@@ -378,6 +466,7 @@ class CollabSortEnv(gym.Env):
         info["agent_collision"] = agent_collision
         # Whether the agent rewards have changed (for analysis only, not part of the observation)
         info["reward_changed"] = self.reward_changed
+        info.update(self._get_events_info())
 
         # Episode is terminated when all objects have either been placed by an arm or have fallen from a treadmill
         terminated = (
@@ -434,3 +523,30 @@ class CollabSortEnv(gym.Env):
         if self.window:
             pygame.display.quit()
             pygame.quit()
+
+    def _get_events_info(self) -> dict:
+        """Return the events of the last step, identified by object IDs"""
+
+        events = self.last_events
+
+        return {
+            # Object picked by the agent (if any), with its value under the active agent rewards.
+            # If a collision happened during the same step, the pick reward was not credited
+            # and the object ID also appears in "dropped_object_ids"
+            "agent_picked_object_id": _get_id(events.agent_picked_object),
+            "agent_picked_object_value": events.agent_picked_object_value,
+            "agent_failed_pick": events.agent_failed_pick,
+            # Same for the robot, with values under robot rewards
+            "robot_picked_object_id": _get_id(events.robot_picked_object),
+            "robot_picked_object_value": events.robot_picked_object_value,
+            "robot_failed_pick": events.robot_failed_pick,
+            # Collision between arms, caused by any of them
+            "collision": events.collision,
+            # Object placed in its base by each arm (if any)
+            "agent_placed_object_id": _get_id(events.agent_placed_object),
+            "robot_placed_object_id": _get_id(events.robot_placed_object),
+            # Objects dropped because of a collision
+            "dropped_object_ids": tuple(obj.id for obj in events.dropped_objects),
+            # Objects fallen from a treadmill
+            "fallen_object_ids": tuple(obj.id for obj in events.fallen_objects),
+        }

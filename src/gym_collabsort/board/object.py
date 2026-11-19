@@ -19,6 +19,7 @@ class Object(Sprite):
         config: Config,
         color: Color,
         shape: Shape,
+        id: int = -1,
     ) -> None:
         super().__init__(
             location=location,
@@ -29,6 +30,9 @@ class Object(Sprite):
 
         self.color = color
         self.shape = shape
+
+        # Stable identifier, unique among the objects created by a board (-1 if unassigned)
+        self.id = id
 
         color_name = get_color_name(color=color)
 
@@ -65,9 +69,10 @@ class Object(Sprite):
             "coords": self.coords.as_vector(),
             "color": self.color.value,
             "shape": self.shape.value,
+            "id": np.int64(self.id),
         }
 
     def __repr__(self) -> str:  # pragma: no cover
         """Return a string representation of the object"""
 
-        return f"Object ({self.color}, {self.shape})"
+        return f"Object #{self.id} ({self.color}, {self.shape})"
