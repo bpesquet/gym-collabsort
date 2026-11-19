@@ -82,10 +82,6 @@ class CollabSortEnv(gym.Env):
         # Total number of environment steps executed since reset
         self.total_steps: int = 0
 
-        # Number of removed objects: placed by any arm or fallen from any treadmill.
-        # Used to assess the end of episode
-        self.n_removed_objects: int = 0
-
         # Number of collisions
         self.n_collisions: int = 0
 
@@ -155,6 +151,18 @@ class CollabSortEnv(gym.Env):
             or self.board.robot_arm.collision_penalty
         )
 
+    @property
+    def n_removed_objects(self) -> int:
+        """
+        Return the number of objects removed from the board since reset:
+        placed or dropped by any arm, or fallen from any treadmill.
+        """
+
+        return self.n_fallen_objects_total + sum(
+            arm.n_placed_objects + arm.n_dropped_objects
+            for arm in (self.board.agent_arm, self.board.robot_arm)
+        )
+
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict, dict]:
@@ -165,7 +173,6 @@ class CollabSortEnv(gym.Env):
         self.board.rng = self.np_random
 
         # Reset episode metrics
-        self.n_removed_objects = 0
         self.n_collisions = 0
         self.agent_episode_reward = 0
         self.robot_episode_reward = 0
@@ -215,6 +222,9 @@ class CollabSortEnv(gym.Env):
             "n_collisions": self.n_collisions,
             # Number of missed objects (fallen from a treadmill)
             "n_fallen_objects": self.n_fallen_objects_total,
+            # Number of objects dropped by any arm because of a collision
+            "n_dropped_objects": self.board.agent_arm.n_dropped_objects
+            + self.board.robot_arm.n_dropped_objects,
             # Number of objects placed (collected) by the agent
             "n_agent_placed_objects": self.board.agent_arm.n_placed_objects,
             # Number of objects placed (collected) by the robot (if any)
@@ -310,31 +320,25 @@ class CollabSortEnv(gym.Env):
         if agent_action in (Action.UP, Action.DOWN):
             agent_reward += self.config.movement_penalty
 
+        # Move placed objects (if any) to score bars.
+        # An arm may have placed an object before a collision caused by the other arm during the same step
+        if robot_placed_object is not None:
+            self.board.robot_scorebar.add(placed_object=robot_placed_object)
+        if agent_placed_object is not None:
+            self.board.agent_scorebar.add(placed_object=agent_placed_object)
+
         picked_val = None
-        # Handle collisions
+        # Handle collisions.
+        # Picked objects have already been dropped and removed from the board by the arms
         if robot_collision or agent_collision:
             self.n_collisions += 1
-
-            # Drop any picked object in case of a collision.
-            # Any dropped object is removed from the board
-            if self.board.robot_arm.picked_object:
-                self.board.robot_arm._picked_object.empty()
-                self.n_removed_objects += 1
-            if self.board.agent_arm.picked_object:
-                self.board.agent_arm._picked_object.empty()
-                self.n_removed_objects += 1
 
             # Compute negative rewards for the collision
             agent_reward += self.config.collision_penalty
             robot_reward += self.config.collision_penalty
         else:
             # Handle robot object
-            if robot_placed_object is not None:
-                # Robot arm has placed an object: move it to score bar
-                self.board.robot_scorebar.add(placed_object=robot_placed_object)
-                # Increment number of objects removed from the board
-                self.n_removed_objects += 1
-            elif robot_picked_object is not None:
+            if robot_picked_object is not None:
                 # Compute robot reward
                 robot_reward += robot_picked_object.get_reward(
                     rewards=self.config.robot_rewards
@@ -343,12 +347,7 @@ class CollabSortEnv(gym.Env):
                 # Robot has tried a PICK action unsuccessfully: add negative reward
                 robot_reward += self.config.failed_action_penalty
 
-            if agent_placed_object is not None:
-                # Agent arm has placed an object: move it to score bar
-                self.board.agent_scorebar.add(placed_object=agent_placed_object)
-                # Increment number of objects removed from the board
-                self.n_removed_objects += 1
-            elif agent_picked_object is not None:
+            if agent_picked_object is not None:
                 # Compute agent reward
                 picked_val = agent_picked_object.get_reward(
                     rewards=active_agent_rewards
@@ -361,7 +360,6 @@ class CollabSortEnv(gym.Env):
         # Update world state
         fallen = self.board.animate()
         self.n_fallen_objects_total += fallen
-        self.n_removed_objects += fallen
         if self.config.reward_noise_std > 0:
             agent_reward += float(
                 self.np_random.normal(

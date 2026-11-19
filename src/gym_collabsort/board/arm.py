@@ -99,6 +99,9 @@ class Arm:
         # Number of placed objects for this arm
         self.n_placed_objects: int = 0
 
+        # Number of objects dropped by this arm because of a collision
+        self.n_dropped_objects: int = 0
+
     @property
     def base(self) -> Base:
         """Return the arm base"""
@@ -127,6 +130,15 @@ class Arm:
         """Reset arm metrics"""
 
         self.n_placed_objects = 0
+        self.n_dropped_objects = 0
+
+    def drop_object(self) -> None:
+        """Drop the picked object (if any), removing it from the board"""
+
+        if self.picked_object is not None:
+            # Remove the object from all groups, including the arm and the board objects
+            self.picked_object.kill()
+            self.n_dropped_objects += 1
 
     def collide_arm(self, arm: Arm | None) -> bool:
         """Check if the arm collides with the other arm"""
@@ -225,15 +237,18 @@ class Arm:
                 # Change collision penalty status (both grippers will move back to their base)
                 self.collision_penalty = True
 
+                # Both arms drop any picked object, which is removed from the board.
+                # This happens before the retraction check below, so that an object cannot be placed
+                # by a movement ending in a collision
+                self.drop_object()
+
                 if other_arm is not None:
                     if not other_arm.is_retracted():
                         # Penalty state is not applied if the other arm is already retracted.
                         # Otherwise it would be stuck forever in its base
                         other_arm.collision_penalty = True
 
-                    if other_arm.picked_object is not None:
-                        # Drop any object picked by the other arm just before this collision
-                        other_arm._picked_object.empty()
+                    other_arm.drop_object()
 
             if self.is_retracted():
                 # Gripper is back to its base: cancel collision penalty (if any)

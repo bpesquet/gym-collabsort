@@ -2,7 +2,7 @@
 Unit tests for environment.
 """
 
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import patch
 
 import gymnasium as gym
 import numpy as np
@@ -11,7 +11,9 @@ import pytest
 from gymnasium.utils.env_checker import check_env
 
 import gym_collabsort
-from gym_collabsort.config import Action, Config, RenderMode
+from gym_collabsort.board.arm import Arm
+from gym_collabsort.board.object import Object
+from gym_collabsort.config import Action, Color, Config, RenderMode, Shape
 from gym_collabsort.envs.env import CollabSortEnv
 from gym_collabsort.envs.robot import Robot
 
@@ -38,6 +40,7 @@ def test_api() -> None:
     assert info["n_collisions"] == 0
     assert info["n_agent_placed_objects"] == 0
     assert info["n_robot_placed_objects"] == 0
+    assert info["n_dropped_objects"] == 0
 
     # TODO test observation format
 
@@ -324,43 +327,117 @@ def test_empty_treadmills_raises() -> None:
         env.reset()
 
 
-def test_collision_drops_held_objects_and_increments_removed() -> None:
-    """Test that a collision forces both arms to drop their objects and increments n_removed_objects."""
+def _make_collision_env() -> CollabSortEnv:
+    """Create an environment with a single object and no automatic object spawning"""
 
-    config = Config(render_mode=RenderMode.RGB_ARRAY, robot_enabled=True)
+    config = Config(render_mode=RenderMode.RGB_ARRAY, n_objects=1, new_object_proba=0)
     env = CollabSortEnv(config=config)
-    env.reset(seed=42)
+    env.reset(seed=0)
 
-    env.board.robot_arm.act = MagicMock(return_value=(True, None, None))
-    env.board.agent_arm.act = MagicMock(return_value=(True, None, None))
+    return env
 
-    env.board.robot_arm._picked_object = MagicMock()
-    env.board.agent_arm._picked_object = MagicMock()
 
-    with (
-        patch.object(
-            type(env.board.robot_arm),
-            "picked_object",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
-        patch.object(
-            type(env.board.agent_arm),
-            "picked_object",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
-    ):
-        env.step(action=Action.NONE.value)
+def _give_object(env: CollabSortEnv, arm: Arm) -> Object:
+    """Add an object to the board and make it picked by the given arm"""
+
+    obj = Object(
+        location=arm.gripper.location,
+        config=env.config,
+        color=Color.RED,
+        shape=Shape.SQUARE,
+    )
+    env.board.objects.add(obj)
+    arm._picked_object.add(obj)
+    env.board.n_added_objects += 1
+
+    return obj
+
+
+def _assert_dropped(env: CollabSortEnv, arm: Arm, obj: Object) -> None:
+    """Assert that the object picked by the arm was dropped and counted once"""
 
     assert env.n_collisions == 1
+    assert arm.picked_object is None
+    assert obj not in env.board.objects
+    assert arm.n_dropped_objects == 1
+    assert arm.n_placed_objects == 0
+    assert env.n_removed_objects == 1
+    assert env._get_info()["n_dropped_objects"] == 1
 
-    env.board.robot_arm._picked_object.empty.assert_called_once()
-    env.board.agent_arm._picked_object.empty.assert_called_once()
 
-    assert env.n_removed_objects == 2
+def test_collision_drops_object_of_moving_arm() -> None:
+    """Test that an arm colliding while carrying an object drops it, removing it from the board"""
+
+    env = _make_collision_env()
+    agent_arm, robot_arm = env.board.agent_arm, env.board.robot_arm
+
+    # Agent gripper on row 6 carrying an object back down to its base, robot gripper just below on row 7
+    agent_arm.gripper.move(row_offset=-5)
+    robot_arm.gripper.move(row_offset=6)
+    obj = _give_object(env=env, arm=agent_arm)
+
+    with patch.object(env.robot, "choose_action", return_value=Action.NONE):
+        _, _, terminated, _, info = env.step(action=Action.NONE.value)
+
+        _assert_dropped(env=env, arm=agent_arm, obj=obj)
+        # The only object has been removed: episode is over
+        assert terminated
+
+        # The dropped object must not be counted again later
+        for _ in range(20):
+            _, _, _, _, info = env.step(action=Action.NONE.value)
+        assert env.n_removed_objects == 1
+        assert info["n_fallen_objects"] == 0
 
     env.close()
+
+
+def test_collision_drops_object_of_hit_arm() -> None:
+    """Test that an arm hit by the other arm drops its object, removing it from the board"""
+
+    env = _make_collision_env()
+    agent_arm, robot_arm = env.board.agent_arm, env.board.robot_arm
+
+    # Agent gripper on row 6 carrying an object, robot gripper just above on row 5 and moving down
+    agent_arm.gripper.move(row_offset=-5)
+    robot_arm.gripper.move(row_offset=4)
+    obj = _give_object(env=env, arm=agent_arm)
+
+    with patch.object(env.robot, "choose_action", return_value=Action.DOWN):
+        _, _, terminated, _, _ = env.step(action=Action.NONE.value)
+
+    _assert_dropped(env=env, arm=agent_arm, obj=obj)
+    assert terminated
+
+    env.close()
+
+
+def test_collision_prevents_placement() -> None:
+    """Test that an object is dropped, not placed, when moving back to the base ends in a collision"""
+
+    env = _make_collision_env()
+    agent_arm, robot_arm = env.board.agent_arm, env.board.robot_arm
+
+    # Agent gripper inside the robot base on row 1, robot gripper carrying an object just below on row 2
+    agent_arm.gripper.move(row_offset=-10)
+    robot_arm.gripper.move(row_offset=1)
+    obj = _give_object(env=env, arm=robot_arm)
+
+    env.step(action=Action.NONE.value)
+
+    _assert_dropped(env=env, arm=robot_arm, obj=obj)
+    assert len(env.board.robot_scorebar.objects) == 0
+
+    env.close()
+
+
+def test_config_fields() -> None:
+    """Test configuration values that can be overridden or are derived from other ones"""
+
+    config = Config(new_object_proba=0.5, board_cell_size=100)
+
+    assert config.new_object_proba == 0.5
+    assert config.arm_gripper_size == 50
 
 
 if __name__ == "__main__":
